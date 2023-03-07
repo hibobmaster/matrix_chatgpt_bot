@@ -20,9 +20,9 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        asyncio.run(main())
+        loop = asyncio.get_event_loop()
+        task = loop.create_task(main())
+        loop.run_until_complete(task)
     except KeyboardInterrupt:
         loop.close()
         sys.exit(0)
