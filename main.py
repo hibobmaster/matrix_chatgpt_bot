@@ -2,7 +2,6 @@
 import json
 import asyncio
 from bot import Bot
-import sys
 
 
 async def main():
@@ -12,7 +11,7 @@ async def main():
                      user_id=config['user_id'],
                      password=config['password'],
                      device_id=config['device_id'],
-                     room_id=config['room_id'],
+                     room_id=config.get('room_id', ''),  # provide a default value when the key does not exist
                      api_key=config['api_key'])
     await matrix_bot.login()
     await matrix_bot.sync_forever()
@@ -20,11 +19,8 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        loop = asyncio.get_event_loop()
-        task = loop.create_task(main())
-        loop.run_until_complete(task)
-    except KeyboardInterrupt:
-        loop.close()
-        sys.exit(0)
-
-    # asyncio.get_event_loop().run_until_complete(main())
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    asyncio.run(main())

@@ -41,24 +41,28 @@ class Bot:
 
     # message_callback event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
+        if self.room_id == '':
+            room_id = room.room_id
+        else:
+            room_id = self.room_id
         # chatgpt
         m = self.gpt_prog.match(event.body)
         if m:
             # sending typing state
-            await self.client.room_typing(self.room_id)
+            await self.client.room_typing(room_id)
             prompt = m.group(1)
             text = await ask(prompt)
             text = text.strip()
-            await send_room_message(self.client, self.room_id, send_text=text)
+            await send_room_message(self.client, room_id, send_text=text)
 
         n = self.chat_prog.match(event.body)
         if n:
             # sending typing state
-            await self.client.room_typing(self.room_id)
+            await self.client.room_typing(room_id)
             prompt = n.group(1)
             try:
                 text = self.chatbot.ask(prompt).strip()
-                await send_room_message(self.client, self.room_id, send_text=text)
+                await send_room_message(self.client, room_id, send_text=text)
             except Exception as e:
                 print(f"Error: {e}")
                 pass
