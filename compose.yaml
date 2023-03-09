@@ -1,0 +1,8 @@
+services:
+  app:
+    container_name: matrix_chatgpt_bot
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./config.json:/app/config.json
