@@ -3,6 +3,13 @@ This is a simple Matrix bot that uses OpenAI's GPT API and a Chatbot to generate
 ![demo](https://i.imgur.com/kK4rnPf.jpeg "demo")
 
 ## Installation and Setup
+Docker method:<br>
+Edit `config.json` with proper values <br>
+```bash
+sudo docker compose up -d
+```
+<hr>
+
 To run this application, follow the steps below:<br>
 1. Clone the repository:
 ```
