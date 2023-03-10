@@ -1,5 +1,5 @@
 ## Introduction
-This is a simple Matrix bot that uses OpenAI's GPT API and a Chatbot to generate responses to user inputs. The bot responds to two types of prompts: `!gpt` and `!chat`, depending on the first word of the prompt.
+This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate responses to user inputs. The bot responds to three types of prompts: `!gpt`, `!chat` and `!bing` depending on the first word of the prompt.
 ![demo](https://i.imgur.com/kK4rnPf.jpeg "demo")
 
 ## Installation and Setup
@@ -45,11 +45,16 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 ```
 !gpt What is the meaning of life?
 ```
-- `!chat` To chat using official api with context associated support
+- `!chat` To chat using official api with context conversation
 ```
 !chat Can you tell me a joke?
 ```
+- `!bing` To chat with Bing AI with context conversation
+```
+!bing Do you know Victor Marie Hugo?
+```
 
 ## Bing AI
-https://github.com/waylaidwanderer/node-chatgpt-api
+https://github.com/waylaidwanderer/node-chatgpt-api <br>
+https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/Bing-AI
 ![](https://i.imgur.com/KuYddd5.jpg)
