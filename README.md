@@ -47,3 +47,7 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 ```
 !chat Can you tell me a joke?
 ```
+
+## Bing AI
+https://github.com/waylaidwanderer/node-chatgpt-api
+![](https://i.imgur.com/KuYddd5.jpg)

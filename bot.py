@@ -9,10 +9,11 @@ from ask_gpt import ask
 from send_message import send_room_message
 from v3 import Chatbot
 from log import getlogger
+from bing import BingBot
 """
 free api_endpoint from https://github.com/ayaka14732/ChatGPTAPIFree
 """
-api_endpoint_list = {
+chatgpt_api_endpoint_list = {
     "free": "https://chatgpt-api.shn.hk/v1/",
     "paid": "https://api.openai.com/v1/chat/completions"
 }
@@ -21,13 +22,14 @@ logger = getlogger()
 
 class Bot:
     def __init__(
-         self,
-         homeserver: str,
-         user_id: str,
-         password: str,
-         device_id: str,
-         api_key: Optional[str] = "",
-         room_id: Optional[str] = '',
+        self,
+        homeserver: str,
+        user_id: str,
+        password: str,
+        device_id: str,
+        api_key: Optional[str] = "",
+        room_id: Optional[str] = '',
+        bing_api_endpoint: Optional[str] = '',
     ):
         self.homeserver = homeserver
         self.user_id = user_id
@@ -35,6 +37,7 @@ class Bot:
         self.device_id = device_id
         self.room_id = room_id
         self.api_key = api_key
+        self.bing_api_endpoint = bing_api_endpoint
         # initialize AsyncClient object
         self.store_path = os.getcwd()
         self.config = AsyncClientConfig(store=SqliteStore,
@@ -46,20 +49,26 @@ class Bot:
         # regular expression to match keyword [!gpt {prompt}] [!chat {prompt}]
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
         self.chat_prog = re.compile(r"^\s*!chat\s*(.+)$")
-        # initialize chatbot and api_endpoint
+        self.bing_prog = re.compile(r"^\s*!bing\s*(.+)$")
+        # initialize chatbot and chatgpt_api_endpoint
         if self.api_key != '':
             self.chatbot = Chatbot(api_key=self.api_key)
 
-            self.api_endpoint = api_endpoint_list['paid']
+            self.chatgpt_api_endpoint = chatgpt_api_endpoint_list['paid']
             # request header for !gpt command
             self.headers = {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + self.api_key,
             }
         else:
+            self.chatgpt_api_endpoint = chatgpt_api_endpoint_list['free']
             self.headers = {
                 "Content-Type": "application/json",
             }
+
+        # initialize bingbot
+        if self.bing_api_endpoint != '':
+            self.bingbot = BingBot(bing_api_endpoint)
 
     # message_callback event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
@@ -75,6 +84,7 @@ class Bot:
             room_id = room.room_id
         else:
             room_id = self.room_id
+
         # chatgpt
         n = self.chat_prog.match(event.body)
         if n:
@@ -101,14 +111,30 @@ class Bot:
             await self.client.room_typing(room_id)
             prompt = m.group(1)
             try:
-                # 默认等待30s
-                text = await asyncio.wait_for(ask(prompt, self.api_endpoint, self.headers), timeout=30)
+                # timeout 30s
+                text = await asyncio.wait_for(ask(prompt, self.chatgpt_api_endpoint, self.headers), timeout=30)
             except TimeoutError:
                 logger.error("timeoutException", exc_info=True)
                 text = "Timeout error"
 
             text = text.strip()
             await send_room_message(self.client, room_id, send_text=text)
+
+        # bing ai
+        if self.bing_api_endpoint != '':
+            b = self.bing_prog.match(event.body)
+            if b:
+                # sending typing state
+                await self.client.room_typing(room_id)
+                prompt = b.group(1)
+                try:
+                    # timeout 30s
+                    text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=30)
+                except TimeoutError:
+                    logger.error("timeoutException", exc_info=True)
+                    text = "Timeout error"
+                text = text.strip()
+                await send_room_message(self.client, room_id, send_text=text)
 
     # bot login
     async def login(self) -> None:

@@ -7,5 +7,18 @@ services:
     #   context: .
     #   dockerfile: ./Dockerfile
     volumes:
-      - ./config.json:/app/config.json
+      - ./app:/app
+    networks:
+      - matrix_network
+  # api:
+  # # bing api
+  #   image: hibobmaster/node-chatgpt-api:latest
+  #   container_name: node-chatgpt-api
+  #   restart: always
+  #   volumes:
+  #     - ./settings.js:/var/chatgpt-api/settings.js
+  #   networks:
+  #     - matrix_network
 
+networks:
+  matrix_network:

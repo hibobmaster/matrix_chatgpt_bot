@@ -13,6 +13,7 @@ async def main():
                      device_id=config['device_id'],
                      room_id=config.get('room_id', ''),  # provide a default value when the key does not exist
                      api_key=config.get('api_key', ''),
+                     bing_api_endpoint=config.get('bing_api_endpoint', ''),
                      )
     await matrix_bot.login()
     await matrix_bot.sync_forever()
