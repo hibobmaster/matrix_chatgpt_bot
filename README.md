@@ -5,7 +5,9 @@ This is a simple Matrix bot that uses OpenAI's GPT API and a Chatbot to generate
 ## Installation and Setup
 Docker method:<br>
 Edit `config.json` with proper values <br>
+Create an empty file, for persist database only<br>
 ```bash
+touch bot
 sudo docker compose up -d
 ```
 <hr>
