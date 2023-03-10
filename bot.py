@@ -9,6 +9,14 @@ from ask_gpt import ask
 from send_message import send_room_message
 from v3 import Chatbot
 
+"""
+free api_endpoint from https://github.com/ayaka14732/ChatGPTAPIFree
+"""
+api_endpoint_list = {
+    "free": "https://chatgpt-api.shn.hk/v1/",
+    "paid": "https://api.openai.com/v1/chat/completions"
+}
+
 
 class Bot:
     def __init__(
@@ -37,9 +45,20 @@ class Bot:
         # regular expression to match keyword [!gpt {prompt}] [!chat {prompt}]
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
         self.chat_prog = re.compile(r"^\s*!chat\s*(.+)$")
-        # initialize chatbot
+        # initialize chatbot and api_endpoint
         if self.api_key != '':
             self.chatbot = Chatbot(api_key=self.api_key)
+
+            self.api_endpoint = api_endpoint_list['paid']
+            # request header for !gpt command
+            self.headers = {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + self.api_key,
+            }
+        else:
+            self.headers = {
+                "Content-Type": "application/json",
+            }
 
     # message_callback event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
@@ -55,7 +74,7 @@ class Bot:
             # sending typing state
             await self.client.room_typing(room_id)
             prompt = m.group(1)
-            text = await ask(prompt)
+            text = await ask(prompt, self.api_endpoint, self.headers)
             text = text.strip()
             await send_room_message(self.client, room_id, send_text=text)
 
