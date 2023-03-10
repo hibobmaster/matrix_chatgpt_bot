@@ -4,7 +4,6 @@ api_endpoint from https://github.com/ayaka14732/ChatGPTAPIFree
 import aiohttp
 import asyncio
 import json
-import time
 
 api_endpoint_free = "https://chatgpt-api.shn.hk/v1/"
 headers = {'Content-Type': "application/json"}
@@ -29,7 +28,7 @@ async def ask(prompt: str) -> str:
                     status_code = response.status
                     if not status_code == 200:
                         # wait 2s
-                        time.sleep(2)
+                        await asyncio.sleep(2)
                         continue
 
                     resp = await response.read()
