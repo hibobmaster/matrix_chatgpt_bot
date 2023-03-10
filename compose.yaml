@@ -1,8 +1,11 @@
 services:
   app:
+    image: hibobmaster/matrixchatgptbot:latest
     container_name: matrix_chatgpt_bot
-    build:
-      context: .
-      dockerfile: ./Dockerfile
+    restart: always
+    # build:
+    #   context: .
+    #   dockerfile: ./Dockerfile
     volumes:
       - ./config.json:/app/config.json
+
