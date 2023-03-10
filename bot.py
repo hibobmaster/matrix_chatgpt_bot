@@ -1,4 +1,5 @@
 import sys
+import asyncio
 import re
 import os
 from typing import Optional
@@ -16,7 +17,7 @@ class Bot:
          user_id: str,
          password: str,
          device_id: str,
-         api_key: str = "",
+         api_key: Optional[str] = "",
          room_id: Optional[str] = '',
     ):
         self.homeserver = homeserver
@@ -37,7 +38,8 @@ class Bot:
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
         self.chat_prog = re.compile(r"^\s*!chat\s*(.+)$")
         # initialize chatbot
-        self.chatbot = Chatbot(api_key=self.api_key)
+        if self.api_key != '':
+            self.chatbot = Chatbot(api_key=self.api_key)
 
     # message_callback event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
@@ -57,15 +59,20 @@ class Bot:
 
         n = self.chat_prog.match(event.body)
         if n:
-            # sending typing state
-            await self.client.room_typing(room_id)
-            prompt = n.group(1)
-            try:
-                text = self.chatbot.ask(prompt).strip()
-                await send_room_message(self.client, room_id, send_text=text)
-            except Exception as e:
-                print(f"Error: {e}")
-                pass
+            if self.api_key != '':
+                # sending typing state
+                await self.client.room_typing(room_id)
+                prompt = n.group(1)
+                try:
+                    # run synchronous function in different thread
+                    text = await asyncio.to_thread(self.chatbot.ask, prompt)
+                    text = text.strip()
+                    await send_room_message(self.client, room_id, send_text=text)
+                except Exception as e:
+                    print(f"Error: {e}")
+                    pass
+            else:
+                await send_room_message(self.client, room_id, send_text="API_KEY not provided")
 
         # print info to console
         # print(

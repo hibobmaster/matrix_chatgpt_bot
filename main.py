@@ -12,7 +12,8 @@ async def main():
                      password=config['password'],
                      device_id=config['device_id'],
                      room_id=config.get('room_id', ''),  # provide a default value when the key does not exist
-                     api_key=config['api_key'])
+                     api_key=config.get('api_key', ''),
+                     )
     await matrix_bot.login()
     await matrix_bot.sync_forever()
 
