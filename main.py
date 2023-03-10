@@ -19,6 +19,7 @@ async def main():
 
 
 if __name__ == "__main__":
+    print("matrix chatgpt bot start.....")
     try:
         loop = asyncio.get_running_loop()
     except RuntimeError:

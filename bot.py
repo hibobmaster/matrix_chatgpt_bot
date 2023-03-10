@@ -8,7 +8,7 @@ from nio.store.database import SqliteStore
 from ask_gpt import ask
 from send_message import send_room_message
 from v3 import Chatbot
-
+from log import getlogger
 """
 free api_endpoint from https://github.com/ayaka14732/ChatGPTAPIFree
 """
@@ -16,6 +16,7 @@ api_endpoint_list = {
     "free": "https://chatgpt-api.shn.hk/v1/",
     "paid": "https://api.openai.com/v1/chat/completions"
 }
+logger = getlogger()
 
 
 class Bot:
@@ -62,6 +63,12 @@ class Bot:
 
     # message_callback event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
+        # print info to console
+        print(
+            f"Message received in room {room.display_name}\n"
+            f"{room.user_name(event.sender)} | {event.body}"
+        )
+
         # remove newline character from event.body
         event.body = re.sub("\r\n|\r|\n", " ", event.body)
         if self.room_id == '':
@@ -81,9 +88,11 @@ class Bot:
                     text = text.strip()
                     await send_room_message(self.client, room_id, send_text=text)
                 except Exception as e:
+                    logger.error("Error", exc_info=True)
                     print(f"Error: {e}")
                     pass
             else:
+                logger.warning("No API_KEY provided")
                 await send_room_message(self.client, room_id, send_text="API_KEY not provided")
 
         m = self.gpt_prog.match(event.body)
@@ -95,16 +104,12 @@ class Bot:
                 # 默认等待30s
                 text = await asyncio.wait_for(ask(prompt, self.api_endpoint, self.headers), timeout=30)
             except TimeoutError:
-                text = "出错了，任务超时"
+                logger.error("timeoutException", exc_info=True)
+                text = "Timeout error"
 
             text = text.strip()
             await send_room_message(self.client, room_id, send_text=text)
 
-        # print info to console
-        # print(
-        #     f"Message received in room {room.display_name}\n"
-        #     f"{room.user_name(event.sender)} | {event.body}"
-        # )
     # bot login
     async def login(self) -> None:
         resp = await self.client.login(password=self.password)

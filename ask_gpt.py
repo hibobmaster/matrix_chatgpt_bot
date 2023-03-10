@@ -1,6 +1,8 @@
 import aiohttp
 import asyncio
 import json
+from log import getlogger
+logger = getlogger()
 
 
 async def ask(prompt: str, api_endpoint: str, headers: dict) -> str:
@@ -21,6 +23,8 @@ async def ask(prompt: str, api_endpoint: str, headers: dict) -> str:
                                         json=jsons, headers=headers, timeout=10) as response:
                     status_code = response.status
                     if not status_code == 200:
+                        # print failed reason
+                        logger.warning(str(response.reason))
                         max_try = max_try - 1
                         # wait 2s
                         await asyncio.sleep(2)
@@ -30,5 +34,6 @@ async def ask(prompt: str, api_endpoint: str, headers: dict) -> str:
                     await session.close()
                     return json.loads(resp)['choices'][0]['message']['content']
             except Exception as e:
+                logger.error("Error Exception", exc_info=True)
                 print(e)
                 pass
