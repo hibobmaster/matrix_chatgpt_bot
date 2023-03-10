@@ -69,15 +69,6 @@ class Bot:
         else:
             room_id = self.room_id
         # chatgpt
-        m = self.gpt_prog.match(event.body)
-        if m:
-            # sending typing state
-            await self.client.room_typing(room_id)
-            prompt = m.group(1)
-            text = await ask(prompt, self.api_endpoint, self.headers)
-            text = text.strip()
-            await send_room_message(self.client, room_id, send_text=text)
-
         n = self.chat_prog.match(event.body)
         if n:
             if self.api_key != '':
@@ -95,12 +86,25 @@ class Bot:
             else:
                 await send_room_message(self.client, room_id, send_text="API_KEY not provided")
 
+        m = self.gpt_prog.match(event.body)
+        if m:
+            # sending typing state
+            await self.client.room_typing(room_id)
+            prompt = m.group(1)
+            try:
+                # 默认等待30s
+                text = await asyncio.wait_for(ask(prompt, self.api_endpoint, self.headers), timeout=30)
+            except TimeoutError:
+                text = "出错了，任务超时"
+
+            text = text.strip()
+            await send_room_message(self.client, room_id, send_text=text)
+
         # print info to console
         # print(
         #     f"Message received in room {room.display_name}\n"
         #     f"{room.user_name(event.sender)} | {event.body}"
         # )
-
     # bot login
     async def login(self) -> None:
         resp = await self.client.login(password=self.password)
