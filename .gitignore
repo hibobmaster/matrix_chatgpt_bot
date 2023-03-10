@@ -130,6 +130,7 @@ ENV/
 env.bak/
 venv.bak/
 config.json
+compose_local_build.yaml
 
 # Spyder project settings
 .spyderproject
