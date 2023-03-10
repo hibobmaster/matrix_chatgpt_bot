@@ -7,7 +7,7 @@ services:
     #   context: .
     #   dockerfile: ./Dockerfile
     volumes:
-      - ./app:/app
+      - ./config.json:/app/config.json
     networks:
       - matrix_network
   # api:
