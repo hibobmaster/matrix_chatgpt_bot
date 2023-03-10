@@ -43,6 +43,8 @@ class Bot:
 
     # message_callback event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
+        # remove newline character from event.body
+        event.body = re.sub("\r\n|\r|\n", " ", event.body)
         if self.room_id == '':
             room_id = room.room_id
         else:
