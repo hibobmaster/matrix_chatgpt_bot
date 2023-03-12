@@ -30,6 +30,7 @@ class Bot:
         api_key: Optional[str] = "",
         room_id: Optional[str] = '',
         bing_api_endpoint: Optional[str] = '',
+        access_token: Optional[str] = '',
     ):
         self.homeserver = homeserver
         self.user_id = user_id
@@ -46,6 +47,8 @@ class Bot:
                                         )
         self.client = AsyncClient(self.homeserver, user=self.user_id, device_id=self.device_id,
                                   config=self.config, store_path=self.store_path)
+        if access_token != '':
+            self.client.access_token = access_token
         # regular expression to match keyword [!gpt {prompt}] [!chat {prompt}]
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
         self.chat_prog = re.compile(r"^\s*!chat\s*(.+)$")
@@ -138,10 +141,14 @@ class Bot:
 
     # bot login
     async def login(self) -> None:
-        resp = await self.client.login(password=self.password)
-        if not isinstance(resp, LoginResponse):
-            print(f"Login Failed: {resp}")
-            sys.exit(1)
+        try:
+            resp = await self.client.login(password=self.password)
+            if not isinstance(resp, LoginResponse):
+                logger.error("Login Failed")
+                print(f"Login Failed: {resp}")
+                sys.exit(1)
+        except Exception as e:
+            logger.error("Error Exception", exc_info=True)
 
     # sync messages in the room
     async def sync_forever(self, timeout=30000):
