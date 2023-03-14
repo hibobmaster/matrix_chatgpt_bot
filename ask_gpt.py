@@ -20,7 +20,7 @@ async def ask(prompt: str, api_endpoint: str, headers: dict) -> str:
         while max_try > 0:
             try:
                 async with session.post(url=api_endpoint,
-                                        json=jsons, headers=headers, timeout=10) as response:
+                                        json=jsons, headers=headers, timeout=30) as response:
                     status_code = response.status
                     if not status_code == 200:
                         # print failed reason

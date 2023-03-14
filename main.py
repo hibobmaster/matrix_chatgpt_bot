@@ -9,9 +9,9 @@ async def main():
     config = json.load(fp)
     matrix_bot = Bot(homeserver=config['homeserver'],
                      user_id=config['user_id'],
-                     password=config.get('password', ''),
+                     password=config.get('password', ''), # provide a default value when the key does not exist
                      device_id=config['device_id'],
-                     room_id=config.get('room_id', ''),  # provide a default value when the key does not exist
+                     room_id=config.get('room_id', ''),
                      api_key=config.get('api_key', ''),
                      bing_api_endpoint=config.get('bing_api_endpoint', ''),
                      access_token=config.get('access_token', '')

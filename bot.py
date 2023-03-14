@@ -44,9 +44,10 @@ class Bot:
         self.config = AsyncClientConfig(store=SqliteStore,
                                         store_name="bot",
                                         store_sync_tokens=True,
+                                        encryption_enabled=True,
                                         )
         self.client = AsyncClient(self.homeserver, user=self.user_id, device_id=self.device_id,
-                                  config=self.config, store_path=self.store_path)
+                                  config=self.config, store_path=self.store_path,)
         if access_token != '':
             self.client.access_token = access_token
         # regular expression to match keyword [!gpt {prompt}] [!chat {prompt}]
@@ -75,6 +76,17 @@ class Bot:
 
     # message_callback event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
+        if self.room_id == '':
+            room_id = room.room_id
+        else:
+            # if event room id does not match the room id in config, return
+            if room.room_id != self.room_id:
+                return
+            room_id = self.room_id
+
+        # reply event_id
+        reply_to_event_id = event.event_id
+
         # print info to console
         print(
             f"Message received in room {room.display_name}\n"
@@ -83,10 +95,6 @@ class Bot:
 
         # remove newline character from event.body
         event.body = re.sub("\r\n|\r|\n", " ", event.body)
-        if self.room_id == '':
-            room_id = room.room_id
-        else:
-            room_id = self.room_id
 
         # chatgpt
         n = self.chat_prog.match(event.body)
@@ -99,7 +107,8 @@ class Bot:
                     # run synchronous function in different thread
                     text = await asyncio.to_thread(self.chatbot.ask, prompt)
                     text = text.strip()
-                    await send_room_message(self.client, room_id, send_text=text)
+                    await send_room_message(self.client, room_id, send_text=text,
+                                            reply_to_event_id=reply_to_event_id)
                 except Exception as e:
                     logger.error("Error", exc_info=True)
                     print(f"Error: {e}")
@@ -114,14 +123,15 @@ class Bot:
             await self.client.room_typing(room_id)
             prompt = m.group(1)
             try:
-                # timeout 30s
-                text = await asyncio.wait_for(ask(prompt, self.chatgpt_api_endpoint, self.headers), timeout=30)
+                # timeout 60s
+                text = await asyncio.wait_for(ask(prompt, self.chatgpt_api_endpoint, self.headers), timeout=60)
             except TimeoutError:
                 logger.error("timeoutException", exc_info=True)
                 text = "Timeout error"
 
             text = text.strip()
-            await send_room_message(self.client, room_id, send_text=text)
+            await send_room_message(self.client, room_id, send_text=text,
+                                    reply_to_event_id=reply_to_event_id)
 
         # bing ai
         if self.bing_api_endpoint != '':
@@ -131,13 +141,14 @@ class Bot:
                 await self.client.room_typing(room_id)
                 prompt = b.group(1)
                 try:
-                    # timeout 30s
+                    # timeout 120s
                     text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=120)
                 except TimeoutError:
                     logger.error("timeoutException", exc_info=True)
                     text = "Timeout error"
                 text = text.strip()
-                await send_room_message(self.client, room_id, send_text=text)
+                await send_room_message(self.client, room_id, send_text=text,
+                                        reply_to_event_id=reply_to_event_id)
 
     # bot login
     async def login(self) -> None:
