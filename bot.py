@@ -132,7 +132,7 @@ class Bot:
                 prompt = b.group(1)
                 try:
                     # timeout 30s
-                    text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=30)
+                    text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=120)
                 except TimeoutError:
                     logger.error("timeoutException", exc_info=True)
                     text = "Timeout error"

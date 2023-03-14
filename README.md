@@ -32,7 +32,8 @@ If not set:<br>
     "password": "YOUR_PASSWORD",
     "device_id": "YOUR_DEVICE_ID",
     "room_id": "YOUR_ROOM_ID",
-    "api_key": "YOUR_API_KEY"
+    "api_key": "YOUR_API_KEY",
+    "access_token": "xxxxxxxx"
 }
 ```
 4. Start the bot:
