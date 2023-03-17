@@ -10,12 +10,17 @@ python_boolean_to_json = {
 
 
 class BingBot:
-    def __init__(self, bing_api_endpoint: str):
+    def __init__(self, bing_api_endpoint: str, jailbreakEnabled: bool = False):
         self.data = {
-            'jailbreakConversationId': json.dumps(python_boolean_to_json['true']),
-            'clientOptions.clientToUse': 'bing'
+            # 'jailbreakConversationId': json.dumps(python_boolean_to_json['true']),
+            'clientOptions.clientToUse': 'bing',
         }
         self.bing_api_endpoint = bing_api_endpoint
+
+        self.jailbreakEnabled = jailbreakEnabled
+
+        if self.jailbreakEnabled:
+            self.data['jailbreakConversationId'] = json.dumps(python_boolean_to_json['true'])
 
     async def ask_bing(self, prompt) -> str:
         self.data['message'] = prompt
@@ -34,9 +39,14 @@ class BingBot:
                         await asyncio.sleep(2)
                         continue
                     json_body = json.loads(body)
-                    # print(json_body['jailbreakConversationId'])
-                    self.data['jailbreakConversationId'] = json_body['jailbreakConversationId']
-                    self.data['parentMessageId'] = json_body['messageId']
+                    if self.jailbreakEnabled:
+                        self.data['jailbreakConversationId'] = json_body['jailbreakConversationId']
+                        self.data['parentMessageId'] = json_body['messageId']
+                    else:
+                        self.data['conversationSignature'] = json_body['conversationSignature']
+                        self.data['conversationId'] = json_body['conversationId']
+                        self.data['clientId'] = json_body['clientId']
+                        self.data['invocationId'] = json_body['invocationId']
                     return json_body['response']
                 except Exception as e:
                     logger.error("Error Exception", exc_info=True)

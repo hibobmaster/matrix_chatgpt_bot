@@ -31,6 +31,7 @@ class Bot:
         room_id: Optional[str] = '',
         bing_api_endpoint: Optional[str] = '',
         access_token: Optional[str] = '',
+        jailbreakEnabled: Optional[bool] = False,
     ):
         self.homeserver = homeserver
         self.user_id = user_id
@@ -39,6 +40,7 @@ class Bot:
         self.room_id = room_id
         self.api_key = api_key
         self.bing_api_endpoint = bing_api_endpoint
+        self.jailbreakEnabled = jailbreakEnabled
         # initialize AsyncClient object
         self.store_path = os.getcwd()
         self.config = AsyncClientConfig(store=SqliteStore,
@@ -72,7 +74,7 @@ class Bot:
 
         # initialize bingbot
         if self.bing_api_endpoint != '':
-            self.bingbot = BingBot(bing_api_endpoint)
+            self.bingbot = BingBot(bing_api_endpoint, jailbreakEnabled=self.jailbreakEnabled)
 
     # message_callback event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:

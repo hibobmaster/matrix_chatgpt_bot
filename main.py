@@ -14,7 +14,8 @@ async def main():
                      room_id=config.get('room_id', ''),
                      api_key=config.get('api_key', ''),
                      bing_api_endpoint=config.get('bing_api_endpoint', ''),
-                     access_token=config.get('access_token', '')
+                     access_token=config.get('access_token', ''),
+                     jailbreakEnabled=config.get('jailbreakEnabled', False),
                      )
     if config.get('access_token', '') == '':
         await matrix_bot.login()
