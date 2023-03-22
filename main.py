@@ -16,6 +16,7 @@ async def main():
                      bing_api_endpoint=config.get('bing_api_endpoint', ''),
                      access_token=config.get('access_token', ''),
                      jailbreakEnabled=config.get('jailbreakEnabled', False),
+                     bing_auth_cookie=config.get('bing_auth_cookie', ''),
                      )
     if config.get('access_token', '') == '':
         await matrix_bot.login()
