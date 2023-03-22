@@ -6,6 +6,7 @@ RUN pip3 install --user -r /requirements.txt && rm /requirements.txt
 
 
 FROM python:3.11-alpine as runner
+LABEL "org.opencontainers.image.source"="https://github.com/hibobmaster/matrix_chatgpt_bot"
 RUN apk update && apk add olm-dev libmagic
 COPY --from=pybuilder /root/.local /usr/local
 COPY --from=pybuilder /usr/share/zoneinfo /usr/share/zoneinfo

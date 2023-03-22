@@ -46,10 +46,15 @@ class ImageGen:
         url = f"{BING_URL}/images/create?q={url_encoded_prompt}&rt=4&FORM=GENCRE"
         response = self.session.post(url, allow_redirects=False)
         if response.status_code != 302:
-            logger.error(f"ERROR: {response.text}")
-            return []
+            #if rt4 fails, try rt3
+            url= f"{BING_URL}/images/create?q={url_encoded_prompt}&rt=3&FORM=GENCRE"
+            response3 = self.session.post(url, allow_redirects=False)
+            if response3.status_code != 302:
+                logger.error(f"ERROR: {response.text}")
+                return []
+            response=response3
         # Get redirect URL
-        redirect_url = response.headers["Location"]
+        redirect_url = response.headers["Location"].replace("&nfy=1", "")
         request_id = redirect_url.split("id=")[-1]
         self.session.get(f"{BING_URL}{redirect_url}")
         # https://www.bing.com/images/create/async/results/{ID}?q={PROMPT}
