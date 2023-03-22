@@ -3,8 +3,8 @@ images
 *.md
 Dockerfile
 .dockerignore
-.config.json
-.config.json.sample
+config.json
+config.json.sample
 bot
 bot.log
 venv
