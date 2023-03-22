@@ -1,0 +1,16 @@
+.gitignore
+images
+*.md
+Dockerfile
+.dockerignore
+.config.json
+.config.json.sample
+bot
+bot.log
+venv
+compose.yaml
+.git
+.idea
+__pycache__
+venv
+
