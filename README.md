@@ -1,5 +1,5 @@
 ## Introduction
-This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate responses to user inputs. The bot responds to three types of prompts: `!gpt`, `!chat` and `!bing` depending on the first word of the prompt.
+This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate responses to user inputs. The bot responds to four types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` depending on the first word of the prompt.
 ![demo](https://i.imgur.com/kK4rnPf.jpeg "demo")
 
 ## Installation and Setup
@@ -22,9 +22,12 @@ git clone https://github.com/hibobmaster/matrix_chatgpt_bot.git
 pip install -r requirements.txt
 ```
 3. Create a new config.json file and fill it with the necessary information:<br>
+Use password to login or provide `access_token` <br>
 If not set:<br>
 `room_id`: bot will work in the room where it is in <br>
-`api_key`: `!chat` command will not work 
+`api_key`: `!chat` command will not work <br>
+`bing_api_endpoint`: `!bing` command will not work <br>
+`bing_auth_cookie`: `!pic` command will not work 
 ```json
 {
     "homeserver": "YOUR_HOMESERVER",
@@ -33,7 +36,9 @@ If not set:<br>
     "device_id": "YOUR_DEVICE_ID",
     "room_id": "YOUR_ROOM_ID",
     "api_key": "YOUR_API_KEY",
-    "access_token": "xxxxxxxx"
+    "access_token": "xxxxxxxxxxxxxx",
+    "bing_api_endpoint": "xxxxxxxxx",
+    "bing_auth_cookie": "xxxxxxxxxx"
 }
 ```
 4. Start the bot:
@@ -54,8 +59,13 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 ```
 !bing Do you know Victor Marie Hugo?
 ```
-
-## Bing AI
+- `!pic` To generate an image from Microsoft Bing
+```
+!pic A bridal bouquet made of succulents
+```
+## Bing AI and Image Generation
 https://github.com/waylaidwanderer/node-chatgpt-api <br>
-https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/Bing-AI
+https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/Bing-AI <br>
+https://github.com/acheong08/EdgeGPT/blob/master/src/ImageGen.py
 ![](https://i.imgur.com/KuYddd5.jpg)
+![](https://i.imgur.com/3SRQdN0.jpg)
