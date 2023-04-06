@@ -22,7 +22,7 @@ git clone https://github.com/hibobmaster/matrix_chatgpt_bot.git
 pip install -r requirements.txt
 ```
 3. Create a new config.json file and fill it with the necessary information:<br>
-Use password to login or provide `access_token` <br>
+Use password to login(recommended) or provide `access_token` <br>
 If not set:<br>
 `room_id`: bot will work in the room where it is in <br>
 `api_key`: `!chat` command will not work <br>
