@@ -2,6 +2,11 @@
 This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate responses to user inputs. The bot responds to four types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` depending on the first word of the prompt.
 ![demo](https://i.imgur.com/kK4rnPf.jpeg "demo")
 
+## Roadmap
+1. Support reading config from environment variables
+2. <del>Solve sync token persist problem when using access_token to login</del> Done!
+3. <del>Support e2e session</del> Done!
+
 ## Installation and Setup
 Docker method(Recommended):<br>
 Edit `config.json` or `.env` with proper values <br>
