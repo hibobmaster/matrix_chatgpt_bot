@@ -2,6 +2,7 @@ import sys
 import asyncio
 import re
 import os
+from functools import partial
 import traceback
 from typing import Optional, Union
 from nio import (
@@ -20,14 +21,14 @@ from nio import (
     KeyVerificationKey,
     KeyVerificationMac,
     AsyncClientConfig
-    )
+)
 from nio.store.database import SqliteStore
 from askgpt import askGPT
 from send_message import send_room_message
 from v3 import Chatbot
 from log import getlogger
 from bing import BingBot
-from BingImageGen import ImageGen
+from BingImageGen import ImageGenAsync
 from send_image import send_room_image
 
 logger = getlogger()
@@ -39,7 +40,8 @@ class Bot:
         homeserver: str,
         user_id: str,
         device_id: str,
-        chatgpt_api_endpoint: str = os.environ.get("CHATGPT_API_ENDPOINT") or "https://api.openai.com/v1/chat/completions",
+        chatgpt_api_endpoint: str = os.environ.get(
+            "CHATGPT_API_ENDPOINT") or "https://api.openai.com/v1/chat/completions",
         api_key: Optional[str] = os.environ.get("OPENAI_API_KEY") or "",
         room_id: Union[str, None] = None,
         bing_api_endpoint: Optional[str] = '',
@@ -48,8 +50,8 @@ class Bot:
         jailbreakEnabled: Optional[bool] = True,
         bing_auth_cookie: Optional[str] = '',
     ):
-        if (homeserver is None or user_id is None \
-            or device_id is None):
+        if (homeserver is None or user_id is None
+                or device_id is None):
             logger.warning("homeserver && user_id && device_id is required")
             sys.exit(1)
 
@@ -77,15 +79,19 @@ class Bot:
                                         )
         self.client = AsyncClient(homeserver=self.homeserver, user=self.user_id, device_id=self.device_id,
                                   config=self.config, store_path=self.store_path,)
-        
+
         if self.access_token is not None:
             self.client.access_token = self.access_token
 
-        # setup event callbacks 
-        self.client.add_event_callback(self.message_callback, (RoomMessageText, ))
-        self.client.add_event_callback(self.decryption_failure, (MegolmEvent, ))
-        self.client.add_event_callback(self.invite_callback, (InviteMemberEvent, ))
-        self.client.add_to_device_callback(self.to_device_callback, (KeyVerificationEvent, ))
+        # setup event callbacks
+        self.client.add_event_callback(
+            self.message_callback, (RoomMessageText, ))
+        self.client.add_event_callback(
+            self.decryption_failure, (MegolmEvent, ))
+        self.client.add_event_callback(
+            self.invite_callback, (InviteMemberEvent, ))
+        self.client.add_to_device_callback(
+            self.to_device_callback, (KeyVerificationEvent, ))
 
         # regular expression to match keyword [!gpt {prompt}] [!chat {prompt}]
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
@@ -115,11 +121,15 @@ class Bot:
 
         # initialize bingbot
         if self.bing_api_endpoint != '':
-            self.bingbot = BingBot(bing_api_endpoint, jailbreakEnabled=self.jailbreakEnabled)
+            self.bingbot = BingBot(
+                bing_api_endpoint, jailbreakEnabled=self.jailbreakEnabled)
 
-        # initialize BingImageGen
+        # initialize BingImageGenAsync
         if self.bing_auth_cookie != '':
-            self.imageGen = ImageGen(self.bing_auth_cookie)
+            self.imageGen = ImageGenAsync(self.bing_auth_cookie, quiet=True)
+
+        # get current event loop
+        self.loop = asyncio.get_running_loop()
 
     # message_callback RoomMessageText event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
@@ -157,7 +167,13 @@ class Bot:
                 prompt = n.group(1)
                 if self.api_key != '':
                     try:
-                        await self.chat(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                        await self.chat(room_id,
+                                        reply_to_event_id,
+                                        prompt,
+                                        sender_id,
+                                        raw_user_message
+                                        )
+
                     except Exception as e:
                         logger.error(e)
                         await send_room_message(self.client, room_id, reply_message=str(e))
@@ -169,7 +185,12 @@ class Bot:
             if m:
                 prompt = m.group(1)
                 try:
-                    await self.gpt(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                    await self.gpt(
+                        room_id,
+                        reply_to_event_id,
+                        prompt, sender_id,
+                        raw_user_message
+                    )
                 except Exception as e:
                     logger.error(e)
                     await send_room_message(self.client, room_id, reply_message=str(e))
@@ -181,7 +202,14 @@ class Bot:
                     prompt = b.group(1)
                     # raw_content_body used for construct formatted_body
                     try:
-                        await self.bing(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                        await self.bing(
+                            room_id,
+                            reply_to_event_id,
+                            prompt,
+                            sender_id,
+                            raw_user_message
+                        )
+
                     except Exception as e:
                         await send_room_message(self.client, room_id, reply_message=str(e))
 
@@ -206,9 +234,9 @@ class Bot:
             return
 
         logger.error(
-            f"Failed to decrypt message: {event.event_id} from {event.sender} in {room.room_id}\n" + \
+            f"Failed to decrypt message: {event.event_id} from {event.sender} in {room.room_id}\n" +
             "Please make sure the bot current session is verified"
-            )
+        )
 
     # invite_callback event
     async def invite_callback(self, room: MatrixRoom, event: InviteMemberEvent) -> None:
@@ -233,7 +261,7 @@ class Bot:
 
         # Successfully joined room
         logger.info(f"Joined {room.room_id}")
-        
+
     # to_device_callback event
     async def to_device_callback(self, event: KeyVerificationEvent) -> None:
         """Handle events sent to device.
@@ -346,7 +374,9 @@ class Bot:
                 # keyboard so that user can accept/reject via keyboard.
                 # For emoji verification bot must not run as service or
                 # in background.
-                yn = input("Do the emojis match? (Y/N) (C for Cancel) ")
+                # yn = input("Do the emojis match? (Y/N) (C for Cancel) ")
+                # automatic match, so we use y
+                yn = "y"
                 if yn.lower() == "y":
                     estr = ("Match! The verification for this "
                             "device will be accepted.")
@@ -455,10 +485,10 @@ class Bot:
         text = text.strip()
         try:
             await send_room_message(self.client, room_id, reply_message=text,
-                                reply_to_event_id=reply_to_event_id, sender_id=sender_id, user_message=raw_user_message)
+                                    reply_to_event_id=reply_to_event_id, sender_id=sender_id, user_message=raw_user_message)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
-        
+
     # !gpt command
     async def gpt(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message):
         try:
@@ -478,7 +508,7 @@ class Bot:
             logger.error(f"Error: {e}", exc_info=True)
 
     # !bing command
-    async def bing(self, room_id, reply_to_event_id, prompt, sender_id, raw_content_body):
+    async def bing(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message):
         try:
             # sending typing state
             await self.client.room_typing(room_id, timeout=180000)
@@ -490,7 +520,7 @@ class Bot:
         text = text.strip()
         try:
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id=reply_to_event_id, sender=sender_id, raw_content_body=raw_content_body)
+                                    reply_to_event_id=reply_to_event_id, sender_id=sender_id, user_message=raw_user_message)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
@@ -499,14 +529,20 @@ class Bot:
         try:
             await self.client.room_typing(room_id, timeout=180000)
             # generate image
-            generated_image_path = self.imageGen.save_images(
-                self.imageGen.get_images(prompt),
-                "images",
-            )
+            try:
+
+                links = await self.imageGen.get_images(prompt)
+                image_path = await self.imageGen.save_images(links, "images")
+            except Exception as e:
+                logger.error(f"Image Generation error: {e}", exc_info=True)
+
             # send image
-            if generated_image_path != "":
-                await send_room_image(self.client, room_id, generated_image_path)
-                await self.client.room_typing(room_id, bool=False)
+            try:
+                await send_room_image(self.client, room_id, image_path)
+                await self.client.room_typing(room_id, typing_state=False)
+            except Exception as e:
+                logger.error(e, exc_info=True)
+
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
@@ -542,7 +578,7 @@ class Bot:
 
     # sync messages in the room
     async def sync_forever(self, timeout=30000, full_state=True) -> None:
-        
+
         await self.client.sync_forever(timeout=timeout, full_state=full_state)
 
     # Sync encryption keys with the server
@@ -554,12 +590,11 @@ class Bot:
     async def trust_own_devices(self) -> None:
         await self.client.sync(timeout=30000, full_state=True)
         for device_id, olm_device in self.client.device_store[
-            self.user_id].items():
+                self.user_id].items():
             logger.debug("My other devices are: "
-                                 f"device_id={device_id}, "
-                                 f"olm_device={olm_device}.")
+                         f"device_id={device_id}, "
+                         f"olm_device={olm_device}.")
             logger.info("Setting up trust for my own "
-                                f"device {device_id} and session key "
-                                f"{olm_device.keys['ed25519']}.")
+                        f"device {device_id} and session key "
+                        f"{olm_device.keys['ed25519']}.")
             self.client.verify_device(olm_device)
-        
