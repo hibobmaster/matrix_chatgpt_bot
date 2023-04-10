@@ -527,14 +527,18 @@ class Bot:
 
     # bot login
     async def login(self) -> None:
-        try:
-            resp = await self.client.login(password=self.password)
-            if not isinstance(resp, LoginResponse):
-                logger.error("Login Failed")
-                print(f"Login Failed: {resp}")
-                sys.exit(1)
-        except Exception as e:
-            logger.error(f"Error: {e}", exc_info=True)
+        if self.access_token is not None:
+            logger.info("Login via access_token")
+        else:
+            logger.info("Login via password")
+            try:
+                resp = await self.client.login(password=self.password)
+                if not isinstance(resp, LoginResponse):
+                    logger.error("Login Failed")
+                    print(f"Login Failed: {resp}")
+                    sys.exit(1)
+            except Exception as e:
+                logger.error(f"Error: {e}", exc_info=True)
 
     # sync messages in the room
     async def sync_forever(self, timeout=30000, full_state=True) -> None:

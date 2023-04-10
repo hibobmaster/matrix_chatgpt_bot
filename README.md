@@ -2,10 +2,10 @@
 This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate responses to user inputs. The bot responds to four types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` depending on the first word of the prompt.
 ![demo](https://i.imgur.com/kK4rnPf.jpeg "demo")
 
-## Roadmap
-1. Support reading config from environment variables
-2. <del>Solve sync token persist problem when using access_token to login</del> Done!
-3. <del>Support e2e session</del> Done!
+## Feature
+1. Support openai and Bing AI
+2. Support Bing Image Creator
+3. Support E2E Encrypted Room
 
 ## Installation and Setup
 Docker method(Recommended):<br>
@@ -18,9 +18,12 @@ sudo docker compose up -d
 <hr>
 
 To run this application, follow the steps below:<br>
-1. Clone the repository:
+1. Clone the repository and create virtual environment:
 ```
 git clone https://github.com/hibobmaster/matrix_chatgpt_bot.git
+
+python -m venv venv
+source venv/bin/activate
 ```
 2. Install the required dependencies:<br>
 ```
