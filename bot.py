@@ -9,6 +9,7 @@ from nio import (
     MatrixRoom,
     RoomMessageText,
     InviteMemberEvent,
+    MegolmEvent,
     LoginResponse,
     JoinError,
     ToDeviceError,
@@ -40,13 +41,22 @@ class Bot:
         device_id: str,
         chatgpt_api_endpoint: str = os.environ.get("CHATGPT_API_ENDPOINT") or "https://api.openai.com/v1/chat/completions",
         api_key: Optional[str] = os.environ.get("OPENAI_API_KEY") or "",
-        room_id: Optional[str] = '',
+        room_id: Union[str, None] = None,
         bing_api_endpoint: Optional[str] = '',
         password: Union[str, None] = None,
         access_token: Union[str, None] = None,
         jailbreakEnabled: Optional[bool] = True,
         bing_auth_cookie: Optional[str] = '',
     ):
+        if (homeserver is None or user_id is None \
+            or device_id is None):
+            logger.warning("homeserver && user_id && device_id is required")
+            sys.exit(1)
+
+        if (password is None and access_token is None):
+            logger.warning("password and access_toekn is required")
+            sys.exit(1)
+
         self.homeserver = homeserver
         self.user_id = user_id
         self.password = password
@@ -70,6 +80,12 @@ class Bot:
         
         if self.access_token is not None:
             self.client.access_token = self.access_token
+
+        # setup event callbacks 
+        self.client.add_event_callback(self.message_callback, (RoomMessageText, ))
+        self.client.add_event_callback(self.decryption_failure, (MegolmEvent, ))
+        self.client.add_event_callback(self.invite_callback, (InviteMemberEvent, ))
+        self.client.add_to_device_callback(self.to_device_callback, (KeyVerificationEvent, ))
 
         # regular expression to match keyword [!gpt {prompt}] [!chat {prompt}]
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
@@ -105,9 +121,9 @@ class Bot:
         if self.bing_auth_cookie != '':
             self.imageGen = ImageGen(self.bing_auth_cookie)
 
-    # message_callback event
+    # message_callback RoomMessageText event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
-        if self.room_id == '':
+        if self.room_id is None:
             room_id = room.room_id
         else:
             # if event room id does not match the room id in config, return
@@ -140,10 +156,14 @@ class Bot:
             if n:
                 prompt = n.group(1)
                 if self.api_key != '':
-                    await self.chat(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                    try:
+                        await self.chat(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                    except Exception as e:
+                        logger.error(e)
+                        await send_room_message(self.client, room_id, reply_message=str(e))
                 else:
                     logger.warning("No API_KEY provided")
-                    await send_room_message(self.client, room_id, send_text="API_KEY not provided")
+                    await send_room_message(self.client, room_id, reply_message="API_KEY not provided")
 
             m = self.gpt_prog.match(content_body)
             if m:
@@ -152,6 +172,7 @@ class Bot:
                     await self.gpt(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
                 except Exception as e:
                     logger.error(e)
+                    await send_room_message(self.client, room_id, reply_message=str(e))
 
             # bing ai
             if self.bing_api_endpoint != '':
@@ -159,19 +180,35 @@ class Bot:
                 if b:
                     prompt = b.group(1)
                     # raw_content_body used for construct formatted_body
-                    await self.bing(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                    try:
+                        await self.bing(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                    except Exception as e:
+                        await send_room_message(self.client, room_id, reply_message=str(e))
 
             # Image Generation by Microsoft Bing
             if self.bing_auth_cookie != '':
                 i = self.pic_prog.match(content_body)
                 if i:
                     prompt = i.group(1)
-                    await self.pic(room_id, prompt)
+                    try:
+                        await self.pic(room_id, prompt)
+                    except Exception as e:
+                        await send_room_message(self.client, room_id, reply_message=str(e))
 
             # help command
             h = self.help_prog.match(content_body)
             if h:
                 await self.help(room_id)
+
+    # message_callback decryption_failure event
+    async def decryption_failure(self, room: MatrixRoom, event: MegolmEvent) -> None:
+        if not isinstance(event, MegolmEvent):
+            return
+
+        logger.error(
+            f"Failed to decrypt message: {event.event_id} from {event.sender} in {room.room_id}\n" + \
+            "Please make sure the bot current session is verified"
+            )
 
     # invite_callback event
     async def invite_callback(self, room: MatrixRoom, event: InviteMemberEvent) -> None:
@@ -460,6 +497,7 @@ class Bot:
     # !pic command
     async def pic(self, room_id, prompt):
         try:
+            await self.client.room_typing(room_id, timeout=180000)
             # generate image
             generated_image_path = self.imageGen.save_images(
                 self.imageGen.get_images(prompt),
@@ -468,6 +506,7 @@ class Bot:
             # send image
             if generated_image_path != "":
                 await send_room_image(self.client, room_id, generated_image_path)
+                await self.client.room_typing(room_id, bool=False)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
@@ -499,10 +538,7 @@ class Bot:
 
     # sync messages in the room
     async def sync_forever(self, timeout=30000, full_state=True) -> None:
-        # setup event callbacks 
-        self.client.add_event_callback(self.message_callback, RoomMessageText)
-        self.client.add_event_callback(self.invite_callback, InviteMemberEvent)
-        self.client.add_to_device_callback(self.to_device_callback, KeyVerificationEvent)
+        
         await self.client.sync_forever(timeout=timeout, full_state=full_state)
 
     # Sync encryption keys with the server
