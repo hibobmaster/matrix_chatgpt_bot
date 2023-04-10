@@ -3,11 +3,11 @@ This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate r
 ![demo](https://i.imgur.com/kK4rnPf.jpeg "demo")
 
 ## Installation and Setup
-Docker method:<br>
-Edit `config.json` with proper values <br>
+Docker method(Recommended):<br>
+Edit `config.json` or `.env` with proper values <br>
 Create an empty file, for persist database only<br>
 ```bash
-touch bot
+touch db
 sudo docker compose up -d
 ```
 <hr>

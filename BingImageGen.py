@@ -105,16 +105,5 @@ class ImageGen:
             with open(f"{output_dir}/{image_name}.jpeg", "wb") as output_file:
                 for chunk in response.iter_content(chunk_size=8192):
                     output_file.write(chunk)
-        # image_num = 0
-        # for link in links:
-        #     with self.session.get(link, stream=True) as response:
-        #         # save response to file
-        #         response.raise_for_status()
-        #         with open(f"{output_dir}/{image_num}.jpeg", "wb") as output_file:
-        #             for chunk in response.iter_content(chunk_size=8192):
-        #                 output_file.write(chunk)
-        #
-        #     image_num += 1
 
-        # return image path
         return f"{output_dir}/{image_name}.jpeg"

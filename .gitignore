@@ -26,7 +26,7 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-bot
+db
 bot.log
 
 # image generation folder
@@ -135,6 +135,7 @@ env.bak/
 venv.bak/
 config.json
 compose_local_build.yaml
+settings.js
 
 # Spyder project settings
 .spyderproject

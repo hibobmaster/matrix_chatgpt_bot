@@ -5,12 +5,17 @@ Dockerfile
 .dockerignore
 config.json
 config.json.sample
-bot
+db
 bot.log
 venv
-compose.yaml
+.venv
+*.yaml
+*.yml
 .git
 .idea
 __pycache__
-venv
+.env
+.env.example
+.github
+settings.js
 

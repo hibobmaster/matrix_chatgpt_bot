@@ -6,10 +6,13 @@ services:
     # build:
     #   context: .
     #   dockerfile: ./Dockerfile
+    env_file:
+      - .env
     volumes:
-      - ./config.json:/app/config.json
-      # use touch to create an empty file bot, for persist database only
-      - ./bot:/app/bot
+      # use env file or config.json
+      # - ./config.json:/app/config.json
+      # use touch to create an empty file db, for persist database only
+      - ./db:/app/db
     networks:
       - matrix_network
   # api:
