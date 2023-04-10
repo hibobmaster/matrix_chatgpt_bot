@@ -22,10 +22,10 @@ class BingBot:
 
     async def ask_bing(self, prompt) -> str:
         self.data['message'] = prompt
-        max_try = 5
+        max_try = 3
         while max_try > 0:
             try:
-                resp = await self.session.post(url=self.bing_api_endpoint, json=self.data)
+                resp = await self.session.post(url=self.bing_api_endpoint, json=self.data, timeout=60)
                 status_code = resp.status
                 body = await resp.read()
                 if not status_code == 200:

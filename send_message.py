@@ -11,8 +11,8 @@ async def send_room_message(client: AsyncClient,
     else:
         body = r'> <' + sender_id + r'> ' + user_message + r'\n\n' + reply_message
         format = r'org.matrix.custom.html'
-        formatted_body = r'<mx-reply><blockquote><a href=\"https://matrix.to/#/' + room_id + r'/' + reply_to_event_id
-        + r'\">In reply to</a> <a href=\"https://matrix.to/#/' + sender_id + r'\">' + sender_id  
+        formatted_body = r'<mx-reply><blockquote><a href="https://matrix.to/#/' + room_id + r'/' + reply_to_event_id \
+        + r'">In reply to</a> <a href="https://matrix.to/#/' + sender_id + r'">' + sender_id  \
         + r'</a><br>' + user_message + r'</blockquote></mx-reply>' + reply_message
 
         content={"msgtype": "m.text", "body": body, "format": format, "formatted_body": formatted_body,

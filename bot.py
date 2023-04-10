@@ -71,11 +71,6 @@ class Bot:
         if self.access_token is not None:
             self.client.access_token = self.access_token
 
-        # setup event callbacks
-        self.client.add_event_callback(self.message_callback, (RoomMessageText, ))
-        self.client.add_event_callback(self.invite_callback, (InviteMemberEvent, ))
-        self.client.add_to_device_callback(self.to_device_callback, (KeyVerificationEvent, ))
-        
         # regular expression to match keyword [!gpt {prompt}] [!chat {prompt}]
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
         self.chat_prog = re.compile(r"^\s*!chat\s*(.+)$")
@@ -85,7 +80,7 @@ class Bot:
 
         # initialize chatbot and chatgpt_api_endpoint
         if self.api_key != '':
-            self.chatbot = Chatbot(api_key=self.api_key)
+            self.chatbot = Chatbot(api_key=self.api_key, timeout=60)
 
             self.chatgpt_api_endpoint = self.chatgpt_api_endpoint
             # request header for !gpt command
@@ -153,7 +148,10 @@ class Bot:
             m = self.gpt_prog.match(content_body)
             if m:
                 prompt = m.group(1)
-                await self.gpt(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                try:
+                    await self.gpt(room_id, reply_to_event_id, prompt, sender_id, raw_user_message)
+                except Exception as e:
+                    logger.error(e)
 
             # bing ai
             if self.bing_api_endpoint != '':
@@ -407,9 +405,9 @@ class Bot:
 
     # !chat command
     async def chat(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message):
-        await self.client.room_typing(room_id, timeout=120000)
+        await self.client.room_typing(room_id, timeout=180000)
         try:
-            text = await asyncio.wait_for(self.chatbot.ask_async(prompt), timeout=120)
+            text = await asyncio.wait_for(self.chatbot.ask_async(prompt), timeout=180)
         except TimeoutError as e:
             logger.error("timeoutException", exc_info=True)
             text = "Timeout error"
@@ -428,9 +426,9 @@ class Bot:
     async def gpt(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message):
         try:
             # sending typing state
-            await self.client.room_typing(room_id, timeout=120000)
+            await self.client.room_typing(room_id, timeout=180000)
             # timeout 120s
-            text = await asyncio.wait_for(self.askgpt.oneTimeAsk(prompt, self.chatgpt_api_endpoint, self.headers), timeout=120)
+            text = await asyncio.wait_for(self.askgpt.oneTimeAsk(prompt, self.chatgpt_api_endpoint, self.headers), timeout=180)
         except TimeoutError:
             logger.error("timeoutException", exc_info=True)
             text = "Timeout error"
@@ -446,9 +444,9 @@ class Bot:
     async def bing(self, room_id, reply_to_event_id, prompt, sender_id, raw_content_body):
         try:
             # sending typing state
-            await self.client.room_typing(room_id, timeout=120000)
+            await self.client.room_typing(room_id, timeout=180000)
             # timeout 120s
-            text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=120)
+            text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=180)
         except TimeoutError:
             logger.error("timeoutException", exc_info=True)
             text = "Timeout error"
@@ -481,7 +479,8 @@ class Bot:
             help_info = "!gpt [content], generate response without context conversation\n" + \
                         "!chat [content], chat with context conversation\n" + \
                         "!bing [content], chat with context conversation powered by Bing AI\n" + \
-                        "!pic [prompt], Image generation by Microsoft Bing"
+                        "!pic [prompt], Image generation by Microsoft Bing\n" + \
+                        "!help, help message"
 
             await send_room_message(self.client, room_id, reply_message=help_info)
         except Exception as e:
@@ -499,16 +498,20 @@ class Bot:
             logger.error(f"Error: {e}", exc_info=True)
 
     # sync messages in the room
-    async def sync_forever(self, timeout=30000, full_state=True):
+    async def sync_forever(self, timeout=30000, full_state=True) -> None:
+        # setup event callbacks 
+        self.client.add_event_callback(self.message_callback, RoomMessageText)
+        self.client.add_event_callback(self.invite_callback, InviteMemberEvent)
+        self.client.add_to_device_callback(self.to_device_callback, KeyVerificationEvent)
         await self.client.sync_forever(timeout=timeout, full_state=full_state)
 
     # Sync encryption keys with the server
-    async def sync_encryption_key(self):
+    async def sync_encryption_key(self) -> None:
         if self.client.should_upload_keys:
             await self.client.keys_upload()
 
     # Trust own devices
-    async def trust_own_devices(self):
+    async def trust_own_devices(self) -> None:
         await self.client.sync(timeout=30000, full_state=True)
         for device_id, olm_device in self.client.device_store[
             self.user_id].items():
