@@ -485,7 +485,7 @@ class Bot:
         text = text.strip()
         try:
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id=reply_to_event_id, sender_id=sender_id, user_message=raw_user_message)
+                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
@@ -503,7 +503,7 @@ class Bot:
         text = text.strip()
         try:
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id=reply_to_event_id, sender_id=sender_id, user_message=raw_user_message)
+                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
@@ -520,7 +520,7 @@ class Bot:
         text = text.strip()
         try:
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id=reply_to_event_id, sender_id=sender_id, user_message=raw_user_message)
+                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
