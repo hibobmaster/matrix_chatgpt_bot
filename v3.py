@@ -53,7 +53,8 @@ class Chatbot:
             },
         )
         proxy = (
-            proxy or os.environ.get("all_proxy") or os.environ.get("ALL_PROXY") or None
+            proxy or os.environ.get(
+                "all_proxy") or os.environ.get("ALL_PROXY") or None
         )
 
         if proxy:
@@ -79,7 +80,6 @@ class Chatbot:
             ],
         }
 
-
     def add_to_conversation(
         self,
         message: str,
@@ -104,7 +104,6 @@ class Chatbot:
                 self.conversation[convo_id].pop(1)
             else:
                 break
-
 
     def get_token_count(self, convo_id: str = "default") -> int:
         """
@@ -158,8 +157,10 @@ class Chatbot:
         self.__truncate_conversation(convo_id=convo_id)
         # Get response
         response = self.session.post(
-            os.environ.get("API_URL") or "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+            os.environ.get(
+                "API_URL") or "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
             json={
                 "model": self.engine,
                 "messages": self.conversation[convo_id],
@@ -182,7 +183,7 @@ class Chatbot:
             timeout=kwargs.get("timeout", self.timeout),
             stream=True,
         )
- 
+
         response_role: str = None
         full_response: str = ""
         for line in response.iter_lines():
@@ -205,7 +206,8 @@ class Chatbot:
                 content = delta["content"]
                 full_response += content
                 yield content
-        self.add_to_conversation(full_response, response_role, convo_id=convo_id)
+        self.add_to_conversation(
+            full_response, response_role, convo_id=convo_id)
 
     async def ask_stream_async(
         self,
@@ -225,8 +227,10 @@ class Chatbot:
         # Get response
         async with self.aclient.stream(
             "post",
-            os.environ.get("API_URL") or "https://api.openai.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+            os.environ.get(
+                "API_URL") or "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
             json={
                 "model": self.engine,
                 "messages": self.conversation[convo_id],
@@ -274,7 +278,8 @@ class Chatbot:
                     content: str = delta["content"]
                     full_response += content
                     yield content
-        self.add_to_conversation(full_response, response_role, convo_id=convo_id)
+        self.add_to_conversation(
+            full_response, response_role, convo_id=convo_id)
 
     async def ask_async(
         self,
@@ -313,7 +318,6 @@ class Chatbot:
         )
         full_response: str = "".join(response)
         return full_response
-
 
     def reset(self, convo_id: str = "default", system_prompt: str = None) -> None:
         """

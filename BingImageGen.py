@@ -49,7 +49,6 @@ wait_message = "Waiting for results..."
 download_message = "\nDownloading images..."
 
 
-
 def debug(debug_file, text_var):
     """helper function for debug"""
     with open(f"{debug_file}", "a") as f:
@@ -73,7 +72,6 @@ class ImageGen:
         self.debug_file = debug_file
         if self.debug_file:
             self.debug = partial(debug, self.debug_file)
-
 
     def get_images(self, prompt: str) -> list:
         """
@@ -106,7 +104,8 @@ class ImageGen:
         if response.status_code != 302:
             # if rt4 fails, try rt3
             url = f"{BING_URL}/images/create?q={url_encoded_prompt}&rt=3&FORM=GENCRE"
-            response3 = self.session.post(url, allow_redirects=False, timeout=200)
+            response3 = self.session.post(
+                url, allow_redirects=False, timeout=200)
             if response3.status_code != 302:
                 if self.debug_file:
                     self.debug(f"ERROR: {error_redirect}")
@@ -165,7 +164,7 @@ class ImageGen:
         """
         Saves images to output directory
         """
-        
+
         # image name
         image_name = str(uuid4())
         # since matrix only support one media attachment per message, we just need one link
@@ -308,7 +307,7 @@ class ImageGenAsync:
                     async for chunk in response.content.iter_chunked(8192):
                         output_file.write(chunk)
             return f"{output_dir}/{image_name}.jpeg"
-            
+
         except aiohttp.client_exceptions.InvalidURL as url_exception:
             raise Exception(
                 "Inappropriate contents found in the generated images. Please try again or try another prompt.",
