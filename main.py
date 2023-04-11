@@ -33,7 +33,7 @@ async def main():
                         api_key=os.environ.get("OPENAI_API_KEY"),
                         bing_api_endpoint=os.environ.get("BING_API_ENDPOINT"),
                         access_token=os.environ.get("ACCESS_TOKEN"),
-                        jailbreakEnabled=os.environ.get("JAILBREAKENABLED"),
+                        jailbreakEnabled=os.environ.get("JAILBREAKENABLED", "false").lower() in ('true', '1', 't'),
                         bing_auth_cookie=os.environ.get("BING_AUTH_COOKIE"),
                         )     
 
