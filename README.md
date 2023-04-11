@@ -71,7 +71,7 @@ python main.py
 
 To interact with the bot, simply send a message to the bot in the Matrix room with one of the two prompts:<br>
 
-- `!gpt` To generate a response using free_endpoint API:
+- `!gpt` To generate a one time response:
 
 ```
 !gpt What is the meaning of life?

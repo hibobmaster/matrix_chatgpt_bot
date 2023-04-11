@@ -28,6 +28,7 @@ share/python-wheels/
 MANIFEST
 db
 bot.log
+Dockerfile_dev
 
 # image generation folder
 images/

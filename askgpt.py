@@ -4,6 +4,7 @@ import json
 from log import getlogger
 logger = getlogger()
 
+
 class askGPT:
     def __init__(self):
         self.session = aiohttp.ClientSession()
@@ -22,7 +23,7 @@ class askGPT:
         while max_try > 0:
             try:
                 async with self.session.post(url=api_endpoint,
-                                        json=jsons, headers=headers, timeout=60) as response:
+                                             json=jsons, headers=headers, timeout=60) as response:
                     status_code = response.status
                     if not status_code == 200:
                         # print failed reason

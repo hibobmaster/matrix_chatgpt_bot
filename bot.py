@@ -44,11 +44,12 @@ class Bot:
             "CHATGPT_API_ENDPOINT") or "https://api.openai.com/v1/chat/completions",
         api_key: Optional[str] = os.environ.get("OPENAI_API_KEY") or "",
         room_id: Union[str, None] = None,
-        bing_api_endpoint: Optional[str] = '',
+        bing_api_endpoint: Union[str, None] = None,
         password: Union[str, None] = None,
         access_token: Union[str, None] = None,
-        jailbreakEnabled: Optional[bool] = True,
-        bing_auth_cookie: Optional[str] = '',
+        jailbreakEnabled: Union[bool, None] = True,
+        bing_auth_cookie: Union[str, None] = '',
+        markdown_formatted: Union[bool, None] = False,
     ):
         if (homeserver is None or user_id is None
                 or device_id is None):
@@ -56,7 +57,7 @@ class Bot:
             sys.exit(1)
 
         if (password is None and access_token is None):
-            logger.warning("password and access_toekn is required")
+            logger.warning("password or access_toekn is required")
             sys.exit(1)
 
         self.homeserver = homeserver
@@ -67,9 +68,27 @@ class Bot:
         self.room_id = room_id
         self.api_key = api_key
         self.chatgpt_api_endpoint = chatgpt_api_endpoint
-        self.bing_api_endpoint = bing_api_endpoint
-        self.jailbreakEnabled = jailbreakEnabled
-        self.bing_auth_cookie = bing_auth_cookie
+
+        if bing_api_endpoint is None:
+            self.bing_api_endpoint = ''
+        else:
+            self.bing_api_endpoint = bing_api_endpoint
+
+        if jailbreakEnabled is None:
+            self.jailbreakEnabled = True
+        else:
+            self.jailbreakEnabled = jailbreakEnabled
+
+        if bing_auth_cookie is None:
+            self.bing_auth_cookie = ''
+        else:
+            self.bing_auth_cookie = bing_auth_cookie
+
+        if markdown_formatted is None:
+            self.markdown_formatted = False
+        else:
+            self.markdown_formatted = markdown_formatted
+
         # initialize AsyncClient object
         self.store_path = os.getcwd()
         self.config = AsyncClientConfig(store=SqliteStore,
@@ -485,7 +504,7 @@ class Bot:
         text = text.strip()
         try:
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message)
+                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
@@ -503,7 +522,7 @@ class Bot:
         text = text.strip()
         try:
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message)
+                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
@@ -520,7 +539,7 @@ class Bot:
         text = text.strip()
         try:
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message)
+                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 

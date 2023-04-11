@@ -22,6 +22,7 @@ async def main():
                         access_token=config.get('access_token'),
                         jailbreakEnabled=config.get('jailbreakEnabled'),
                         bing_auth_cookie=config.get('bing_auth_cookie'),
+                        markdown_formatted=config.get('markdown_formatted'),
                         )                     
 
     else:
@@ -35,6 +36,7 @@ async def main():
                         access_token=os.environ.get("ACCESS_TOKEN"),
                         jailbreakEnabled=os.environ.get("JAILBREAKENABLED", "false").lower() in ('true', '1', 't'),
                         bing_auth_cookie=os.environ.get("BING_AUTH_COOKIE"),
+                        markdown_formatted=os.environ.get("MARKDOWN_FORMATTED", "false").lower() in ('true', '1', 't'),
                         )     
 
     await matrix_bot.login()

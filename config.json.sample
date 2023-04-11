@@ -8,5 +8,6 @@
   "bing_api_endpoint": "http://api:3000/conversation",
   "jailbreakEnabled": true,
   "access_token": "xxxxxxx",
-  "bing_auth_cookie": "xxxxxxxxxxx"
+  "bing_auth_cookie": "xxxxxxxxxxx",
+  "markdown_formatted": true
 }
