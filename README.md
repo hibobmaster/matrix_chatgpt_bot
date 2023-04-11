@@ -1,13 +1,14 @@
 ## Introduction
 
 This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate responses to user inputs. The bot responds to four types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` depending on the first word of the prompt.
-![demo](https://i.imgur.com/kK4rnPf.jpeg "demo")
+![2023-04-11_14-18](https://user-images.githubusercontent.com/32976627/231073146-3e380217-a6a2-413d-9203-ab36965b909d.png)
 
 ## Feature
 
 1. Support openai and Bing AI
 2. Support Bing Image Creator
 3. Support E2E Encrypted Room
+4. Colorful code blocks
 
 ## Installation and Setup
 
