@@ -1,5 +1,6 @@
 import sys
 import asyncio
+import aiohttp
 import re
 import os
 from functools import partial
@@ -69,6 +70,8 @@ class Bot:
         self.api_key = api_key
         self.chatgpt_api_endpoint = chatgpt_api_endpoint
 
+        self.session = aiohttp.ClientSession()
+
         if bing_api_endpoint is None:
             self.bing_api_endpoint = ''
         else:
@@ -121,7 +124,7 @@ class Bot:
 
         # initialize chatbot and chatgpt_api_endpoint
         if self.api_key != '':
-            self.chatbot = Chatbot(api_key=self.api_key, timeout=60)
+            self.chatbot = Chatbot(api_key=self.api_key, timeout=120)
 
             self.chatgpt_api_endpoint = self.chatgpt_api_endpoint
             # request header for !gpt command
@@ -136,19 +139,29 @@ class Bot:
             }
 
         # initialize askGPT class
-        self.askgpt = askGPT()
+        self.askgpt = askGPT(self.session)
 
         # initialize bingbot
         if self.bing_api_endpoint != '':
             self.bingbot = BingBot(
-                bing_api_endpoint, jailbreakEnabled=self.jailbreakEnabled)
+                self.session, bing_api_endpoint, jailbreakEnabled=self.jailbreakEnabled)
 
         # initialize BingImageGenAsync
         if self.bing_auth_cookie != '':
             self.imageGen = ImageGenAsync(self.bing_auth_cookie, quiet=True)
 
-        # get current event loop
-        self.loop = asyncio.get_running_loop()
+
+    def __del__(self):
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError as e:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        loop.run_until_complete(self._close())
+
+
+    async def _close(self):
+        await self.session.close()
 
     # message_callback RoomMessageText event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
@@ -194,7 +207,7 @@ class Bot:
                                         )
 
                     except Exception as e:
-                        logger.error(e)
+                        logger.error(e, exc_info=True)
                         await send_room_message(self.client, room_id, reply_message=str(e))
                 else:
                     logger.warning("No API_KEY provided")
@@ -211,7 +224,7 @@ class Bot:
                         raw_user_message
                     )
                 except Exception as e:
-                    logger.error(e)
+                    logger.error(e, exc_info=True)
                     await send_room_message(self.client, room_id, reply_message=str(e))
 
             # bing ai
@@ -230,6 +243,7 @@ class Bot:
                         )
 
                     except Exception as e:
+                        logger.error(e, exc_info=True)
                         await send_room_message(self.client, room_id, reply_message=str(e))
 
             # Image Generation by Microsoft Bing
@@ -240,6 +254,7 @@ class Bot:
                     try:
                         await self.pic(room_id, prompt)
                     except Exception as e:
+                        logger.error(e, exc_info=True)
                         await send_room_message(self.client, room_id, reply_message=str(e))
 
             # help command
@@ -491,12 +506,9 @@ class Bot:
 
     # !chat command
     async def chat(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message):
-        await self.client.room_typing(room_id, timeout=180000)
+        await self.client.room_typing(room_id, timeout=120000)
         try:
-            text = await asyncio.wait_for(self.chatbot.ask_async(prompt), timeout=180)
-        except TimeoutError as e:
-            logger.error(f"TimeoutException: {e}", exc_info=True)
-            raise Exception("Timeout error")
+            text = await self.chatbot.ask_async(prompt)
         except Exception as e:
             raise Exception(e)
 
@@ -509,12 +521,12 @@ class Bot:
             logger.error(f"Error: {e}", exc_info=True)
 
     # !gpt command
-    async def gpt(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message):
+    async def gpt(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message) -> None:
         try:
             # sending typing state
-            await self.client.room_typing(room_id, timeout=180000)
-            # timeout 120s
-            text = await asyncio.wait_for(self.askgpt.oneTimeAsk(prompt, self.chatgpt_api_endpoint, self.headers), timeout=180)
+            await self.client.room_typing(room_id, timeout=240000)
+            # timeout 240s
+            text = await asyncio.wait_for(self.askgpt.oneTimeAsk(prompt, self.chatgpt_api_endpoint, self.headers), timeout=240)
         except TimeoutError:
             logger.error("TimeoutException", exc_info=True)
             raise Exception("Timeout error")
@@ -535,7 +547,7 @@ class Bot:
             # sending typing state
             await self.client.room_typing(room_id, timeout=180000)
             # timeout 120s
-            text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=180)
+            text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=240)
         except TimeoutError:
             logger.error("timeoutException", exc_info=True)
             raise Exception("Timeout error")
@@ -561,6 +573,7 @@ class Bot:
                 image_path = await self.imageGen.save_images(links, "images")
             except Exception as e:
                 logger.error(f"Image Generation error: {e}", exc_info=True)
+                raise Exception(e)
 
             # send image
             try:

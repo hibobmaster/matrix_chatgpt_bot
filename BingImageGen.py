@@ -211,6 +211,17 @@ class ImageGenAsync:
     async def __aexit__(self, *excinfo) -> None:
         await self.session.close()
 
+    def __del__(self):
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError as e:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        loop.run_until_complete(self._close())
+
+    async def _close(self):
+        await self.session.close()
+
     async def get_images(self, prompt: str) -> list:
         """
         Fetches image links from Bing

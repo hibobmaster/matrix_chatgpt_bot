@@ -6,8 +6,8 @@ logger = getlogger()
 
 
 class askGPT:
-    def __init__(self):
-        self.session = aiohttp.ClientSession()
+    def __init__(self, session: aiohttp.ClientSession):
+        self.session = session
 
     async def oneTimeAsk(self, prompt: str, api_endpoint: str, headers: dict) -> str:
         jsons = {
@@ -19,11 +19,11 @@ class askGPT:
                 },
             ],
         }
-        max_try = 3
+        max_try = 2
         while max_try > 0:
             try:
                 async with self.session.post(url=api_endpoint,
-                                             json=jsons, headers=headers, timeout=60) as response:
+                                             json=jsons, headers=headers, timeout=120) as response:
                     status_code = response.status
                     if not status_code == 200:
                         # print failed reason

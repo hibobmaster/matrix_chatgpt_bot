@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 import asyncio
 from bot import Bot
 from log import getlogger
@@ -52,4 +53,6 @@ async def main():
 
 if __name__ == "__main__":
     logger.info("matrix chatgpt bot start.....")
+    print("matrix chatgpt bot start.....")
     asyncio.run(main())
+    
