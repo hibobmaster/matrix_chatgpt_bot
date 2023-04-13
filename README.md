@@ -1,11 +1,13 @@
 ## Introduction
 
-This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate responses to user inputs. The bot responds to four types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` depending on the first word of the prompt.
-![2023-04-11_14-18](https://user-images.githubusercontent.com/32976627/231073146-3e380217-a6a2-413d-9203-ab36965b909d.png)
-![demo](https://i.imgur.com/kK4rnPf.jpeg)
+This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI to generate responses to user inputs. The bot responds to five types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` and `!bard` depending on the first word of the prompt.
+![Bing](https://user-images.githubusercontent.com/32976627/231073146-3e380217-a6a2-413d-9203-ab36965b909d.png)
+![Bard](https://i.imgur.com/OCXEuaa.png)
+![ChatGPT](https://i.imgur.com/kK4rnPf.jpeg)
+
 ## Feature
 
-1. Support openai and Bing AI
+1. Support Openai ChatGPT and Bing AI and Google Bard(US only at the moment)
 2. Support Bing Image Creator
 3. Support E2E Encrypted Room
 4. Colorful code blocks
@@ -90,6 +92,11 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 !bing Do you know Victor Marie Hugo?
 ```
 
+- `!bard` To chat with Google's Bard
+```
+!bard Building a website can be done in 10 simple steps
+```
+
 - `!pic` To generate an image from Microsoft Bing
 
 ```
@@ -102,3 +109,8 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/ <br>
 ![](https://i.imgur.com/KuYddd5.jpg)
 ![](https://i.imgur.com/3SRQdN0.jpg)
+
+## Thanks
+1. [matrix-nio](https://github.com/poljar/matrix-nio)
+2. [acheong08](https://github.com/acheong08)
+3. [node-chatgpt-api](https://github.com/waylaidwanderer/node-chatgpt-api)
