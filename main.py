@@ -1,7 +1,7 @@
+import asyncio
 import json
 import os
-import sys
-import asyncio
+
 from bot import Bot
 from log import getlogger
 
@@ -22,6 +22,7 @@ async def main():
                          api_key=config.get('api_key'),
                          bing_api_endpoint=config.get('bing_api_endpoint'),
                          access_token=config.get('access_token'),
+                         bard_token=config.get('bard_token'),
                          jailbreakEnabled=config.get('jailbreakEnabled'),
                          bing_auth_cookie=config.get('bing_auth_cookie'),
                          markdown_formatted=config.get('markdown_formatted'),
@@ -36,6 +37,7 @@ async def main():
                          api_key=os.environ.get("OPENAI_API_KEY"),
                          bing_api_endpoint=os.environ.get("BING_API_ENDPOINT"),
                          access_token=os.environ.get("ACCESS_TOKEN"),
+                         bard_token=os.environ.get("BARD_TOKEN"),
                          jailbreakEnabled=os.environ.get(
                              "JAILBREAKENABLED", "false").lower() in ('true', '1', 't'),
                          bing_auth_cookie=os.environ.get("BING_AUTH_COOKIE"),
