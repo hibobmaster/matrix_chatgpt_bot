@@ -47,6 +47,6 @@ class BingBot:
                 return json_body['response']
             except Exception as e:
                 logger.error("Error Exception", exc_info=True)
-                print(f"Error: {e}")
-                pass
+            
+        
         return "Error, please retry"

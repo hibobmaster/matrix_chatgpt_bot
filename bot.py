@@ -495,14 +495,14 @@ class Bot:
         try:
             text = await asyncio.wait_for(self.chatbot.ask_async(prompt), timeout=180)
         except TimeoutError as e:
-            logger.error("timeoutException", exc_info=True)
-            text = "Timeout error"
+            logger.error(f"TimeoutException: {e}", exc_info=True)
+            raise Exception("Timeout error")
         except Exception as e:
-            logger.error("Error", exc_info=True)
-            print(f"Error: {e}")
+            raise Exception(e)
 
-        text = text.strip()
+        
         try:
+            text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
                                     reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
         except Exception as e:
@@ -516,11 +516,14 @@ class Bot:
             # timeout 120s
             text = await asyncio.wait_for(self.askgpt.oneTimeAsk(prompt, self.chatgpt_api_endpoint, self.headers), timeout=180)
         except TimeoutError:
-            logger.error("timeoutException", exc_info=True)
-            text = "Timeout error"
+            logger.error("TimeoutException", exc_info=True)
+            raise Exception("Timeout error")
+        except Exception as e:
+            raise Exception(e)
 
-        text = text.strip()
+        
         try:
+            text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
                                     reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
         except Exception as e:
@@ -535,9 +538,13 @@ class Bot:
             text = await asyncio.wait_for(self.bingbot.ask_bing(prompt), timeout=180)
         except TimeoutError:
             logger.error("timeoutException", exc_info=True)
-            text = "Timeout error"
-        text = text.strip()
+            raise Exception("Timeout error")
+        except Exception as e:
+            raise Exception(e)
+            
+        
         try:
+            text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
                                     reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
         except Exception as e:

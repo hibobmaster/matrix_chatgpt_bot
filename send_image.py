@@ -59,3 +59,4 @@ async def send_room_image(client: AsyncClient,
     except Exception as e:
         logger.error(
             f"Image send of file {image} failed.\n Error: {e}", exc_info=True)
+        raise Exception(e)
