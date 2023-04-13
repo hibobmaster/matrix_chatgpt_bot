@@ -7,13 +7,13 @@ logger = getlogger()
 
 
 class BingBot:
-    def __init__(self, bing_api_endpoint: str, jailbreakEnabled: bool = False):
+    def __init__(self, session: aiohttp.ClientSession, bing_api_endpoint: str, jailbreakEnabled: bool = False):
         self.data = {
             'clientOptions.clientToUse': 'bing',
         }
         self.bing_api_endpoint = bing_api_endpoint
 
-        self.session = aiohttp.ClientSession()
+        self.session = session
 
         self.jailbreakEnabled = jailbreakEnabled
 
@@ -22,10 +22,10 @@ class BingBot:
 
     async def ask_bing(self, prompt) -> str:
         self.data['message'] = prompt
-        max_try = 3
+        max_try = 2
         while max_try > 0:
             try:
-                resp = await self.session.post(url=self.bing_api_endpoint, json=self.data, timeout=60)
+                resp = await self.session.post(url=self.bing_api_endpoint, json=self.data, timeout=120)
                 status_code = resp.status
                 body = await resp.read()
                 if not status_code == 200:

@@ -1,7 +1,10 @@
+"""
+Code derived from: https://github.com/acheong08/ChatGPT/blob/main/src/revChatGPT/V3.py
+"""
+
 import json
 import os
 from typing import AsyncGenerator
-
 import httpx
 import requests
 import tiktoken
