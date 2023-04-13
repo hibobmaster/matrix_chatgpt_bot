@@ -36,4 +36,4 @@ class askGPT:
                     resp = await response.read()
                     return json.loads(resp)['choices'][0]['message']['content']
             except Exception as e:
-                logger.error("Error Exception", exc_info=True)
+                raise Exception(e)
