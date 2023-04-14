@@ -13,8 +13,8 @@ async def send_room_message(client: AsyncClient,
     NORMAL_BODY = content = {"msgtype": "m.text", "body": reply_message, }
     if reply_to_event_id == '':
         if markdown_formatted:
-            # only format message contains multiline codes
-            if re.search(r"```", reply_message) is not None:
+            # only format message contains multiline codes, *, |
+            if re.search(r"```|\*|\|", reply_message) is not None:
                 content = {
                     "msgtype": "m.text",
                     "body": reply_message,

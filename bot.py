@@ -147,7 +147,6 @@ class Bot:
         if bard_token is not None:
             self.bardbot = Bardbot(self.bard_token)
 
-
     def __del__(self):
         try:
             loop = asyncio.get_event_loop()
@@ -155,7 +154,6 @@ class Bot:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         loop.run_until_complete(self._close())
-
 
     async def _close(self):
         await self.session.close()
@@ -196,13 +194,13 @@ class Bot:
                 prompt = n.group(1)
                 if self.api_key != '':
                     try:
-                        await self.chat(room_id,
-                                        reply_to_event_id,
-                                        prompt,
-                                        sender_id,
-                                        raw_user_message
-                                        )
-
+                        asyncio.create_task(self.chat(room_id,
+                                                      reply_to_event_id,
+                                                      prompt,
+                                                      sender_id,
+                                                      raw_user_message
+                                                      )
+                                            )
                     except Exception as e:
                         logger.error(e, exc_info=True)
                         await send_room_message(self.client, room_id, reply_message=str(e))
@@ -214,11 +212,12 @@ class Bot:
             if m:
                 prompt = m.group(1)
                 try:
-                    await self.gpt(
+                    asyncio.create_task(self.gpt(
                         room_id,
                         reply_to_event_id,
                         prompt, sender_id,
                         raw_user_message
+                    )
                     )
                 except Exception as e:
                     logger.error(e, exc_info=True)
@@ -231,14 +230,14 @@ class Bot:
                     prompt = b.group(1)
                     # raw_content_body used for construct formatted_body
                     try:
-                        await self.bing(
+                        asyncio.create_task(self.bing(
                             room_id,
                             reply_to_event_id,
                             prompt,
                             sender_id,
                             raw_user_message
                         )
-
+                        )
                     except Exception as e:
                         logger.error(e, exc_info=True)
                         await send_room_message(self.client, room_id, reply_message=str(e))
@@ -249,7 +248,7 @@ class Bot:
                 if i:
                     prompt = i.group(1)
                     try:
-                        await self.pic(room_id, prompt)
+                        asyncio.create_task(self.pic(room_id, prompt))
                     except Exception as e:
                         logger.error(e, exc_info=True)
                         await send_room_message(self.client, room_id, reply_message=str(e))
@@ -260,23 +259,22 @@ class Bot:
                 if b:
                     prompt = b.group(1)
                     try:
-                        await self.bard(
+                        asyncio.create_task(self.bard(
                             room_id,
                             reply_to_event_id,
                             prompt,
                             sender_id,
                             raw_user_message
                         )
+                        )
                     except Exception as e:
                         logger.error(e, exc_info=True)
                         await send_room_message(self.client, room_id, reply_message={e})
 
-
-
             # help command
             h = self.help_prog.match(content_body)
             if h:
-                await self.help(room_id)
+                asyncio.create_task(self.help(room_id))
 
     # message_callback decryption_failure event
     async def decryption_failure(self, room: MatrixRoom, event: MegolmEvent) -> None:
@@ -528,7 +526,6 @@ class Bot:
         except Exception as e:
             raise Exception(e)
 
-        
         try:
             text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
@@ -549,7 +546,6 @@ class Bot:
         except Exception as e:
             raise Exception(e)
 
-        
         try:
             text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
@@ -569,8 +565,7 @@ class Bot:
             raise Exception("Timeout error")
         except Exception as e:
             raise Exception(e)
-            
-        
+
         try:
             text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
@@ -586,16 +581,16 @@ class Bot:
             response = await asyncio.to_thread(self.bardbot.ask, prompt)
         except Exception as e:
             raise Exception(e)
-        
+
         try:
             content = str(response['content']).strip()
             await send_room_message(self.client, room_id, reply_message=content,
-            reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
+                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
         except Exception as e:
             logger.error(e, exc_info=True)
-            
 
     # !pic command
+
     async def pic(self, room_id, prompt):
         try:
             await self.client.room_typing(room_id, timeout=180000)

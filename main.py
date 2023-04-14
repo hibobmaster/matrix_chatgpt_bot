@@ -1,7 +1,8 @@
 import asyncio
 import json
 import os
-
+import signal
+from functools import partial
 from bot import Bot
 from log import getlogger
 
