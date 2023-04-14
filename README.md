@@ -2,7 +2,7 @@
 
 This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI and Google Bard to generate responses to user inputs. The bot responds to five types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` and `!bard` depending on the first word of the prompt.
 ![Bing](https://user-images.githubusercontent.com/32976627/231073146-3e380217-a6a2-413d-9203-ab36965b909d.png)
-![Bard](https://i.imgur.com/OCXEuaa.png)
+![image](https://user-images.githubusercontent.com/32976627/232036790-e830145c-914e-40be-b3e6-c02cba93329c.png)
 ![ChatGPT](https://i.imgur.com/kK4rnPf.jpeg)
 
 ## Feature
