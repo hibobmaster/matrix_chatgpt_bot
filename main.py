@@ -46,9 +46,6 @@ async def main():
                          )
 
     await matrix_bot.login()
-    await matrix_bot.sync_encryption_key()
-
-    # await matrix_bot.trust_own_devices()
 
     await matrix_bot.sync_forever(timeout=30000, full_state=True)
 

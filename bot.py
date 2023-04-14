@@ -653,21 +653,3 @@ class Bot:
     async def sync_forever(self, timeout=30000, full_state=True) -> None:
 
         await self.client.sync_forever(timeout=timeout, full_state=full_state)
-
-    # Sync encryption keys with the server
-    async def sync_encryption_key(self) -> None:
-        if self.client.should_upload_keys:
-            await self.client.keys_upload()
-
-    # Trust own devices
-    async def trust_own_devices(self) -> None:
-        await self.client.sync(timeout=30000, full_state=True)
-        for device_id, olm_device in self.client.device_store[
-                self.user_id].items():
-            logger.debug("My other devices are: "
-                         f"device_id={device_id}, "
-                         f"olm_device={olm_device}.")
-            logger.info("Setting up trust for my own "
-                        f"device {device_id} and session key "
-                        f"{olm_device.keys['ed25519']}.")
-            self.client.verify_device(olm_device)
