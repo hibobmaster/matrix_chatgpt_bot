@@ -7,7 +7,7 @@ logger = getlogger()
 
 
 class BingBot:
-    def __init__(self, session: aiohttp.ClientSession, bing_api_endpoint: str, jailbreakEnabled: bool = False):
+    def __init__(self, session: aiohttp.ClientSession, bing_api_endpoint: str, jailbreakEnabled: bool = True):
         self.data = {
             'clientOptions.clientToUse': 'bing',
         }
@@ -18,7 +18,7 @@ class BingBot:
         self.jailbreakEnabled = jailbreakEnabled
 
         if self.jailbreakEnabled:
-            self.data['jailbreakConversationId'] = json.dumps(True)
+            self.data['jailbreakConversationId'] = True
 
     async def ask_bing(self, prompt) -> str:
         self.data['message'] = prompt
@@ -44,7 +44,7 @@ class BingBot:
                     self.data['conversationId'] = json_body['conversationId']
                     self.data['clientId'] = json_body['clientId']
                     self.data['invocationId'] = json_body['invocationId']
-                return json_body['response']
+                return json_body['details']['adaptiveCards'][0]['body'][0]['text']
             except Exception as e:
                 logger.error("Error Exception", exc_info=True)
             
