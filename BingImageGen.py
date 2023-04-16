@@ -52,7 +52,7 @@ class ImageGenAsync:
 
     def __del__(self):
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
         except RuntimeError as e:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)

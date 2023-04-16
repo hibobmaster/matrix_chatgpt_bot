@@ -3,7 +3,7 @@ import os
 import re
 import sys
 import traceback
-from typing import Optional, Union
+from typing import Union
 
 import aiohttp
 from nio import (AsyncClient, AsyncClientConfig, InviteMemberEvent, JoinError,
@@ -33,7 +33,7 @@ class Bot:
         device_id: str,
         chatgpt_api_endpoint: str = os.environ.get(
             "CHATGPT_API_ENDPOINT") or "https://api.openai.com/v1/chat/completions",
-        api_key: Optional[str] = os.environ.get("OPENAI_API_KEY") or "",
+        api_key: Union[str, None] = None,
         room_id: Union[str, None] = None,
         bing_api_endpoint: Union[str, None] = None,
         password: Union[str, None] = None,
@@ -116,7 +116,7 @@ class Bot:
         self.help_prog = re.compile(r"^\s*!help\s*.*$")
 
         # initialize chatbot and chatgpt_api_endpoint
-        if self.api_key != '':
+        if self.api_key is not None:
             self.chatbot = Chatbot(api_key=self.api_key, timeout=120)
 
             self.chatgpt_api_endpoint = self.chatgpt_api_endpoint
@@ -124,11 +124,6 @@ class Bot:
             self.headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {self.api_key}",
-            }
-        else:
-            self.chatgpt_api_endpoint = self.chatgpt_api_endpoint
-            self.headers = {
-                "Content-Type": "application/json",
             }
 
         # initialize askGPT class
@@ -149,7 +144,7 @@ class Bot:
 
     def __del__(self):
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
         except RuntimeError as e:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
@@ -192,7 +187,7 @@ class Bot:
             n = self.chat_prog.match(content_body)
             if n:
                 prompt = n.group(1)
-                if self.api_key != '':
+                if self.api_key is not None:
                     try:
                         asyncio.create_task(self.chat(room_id,
                                                       reply_to_event_id,
@@ -289,9 +284,8 @@ class Bot:
     # invite_callback event
     async def invite_callback(self, room: MatrixRoom, event: InviteMemberEvent) -> None:
         """Handle an incoming invite event.
-        https://github.com/8go/matrix-eno-bot/blob/ad037e02bd2960941109e9526c1033dd157bb212/callbacks.py#L104
         If an invite is received, then join the room specified in the invite.
-        code copied from: 
+        code copied from: https://github.com/8go/matrix-eno-bot/blob/ad037e02bd2960941109e9526c1033dd157bb212/callbacks.py#L104
         """
         logger.debug(f"Got invite to {room.room_id} from {event.sender}.")
         # Attempt to join 3 times before giving up
