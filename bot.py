@@ -3,11 +3,11 @@ import os
 import re
 import sys
 import traceback
-from typing import Union
+from typing import Union, Optional
 
 import aiohttp
 from nio import (AsyncClient, AsyncClientConfig, InviteMemberEvent, JoinError,
-                 KeyVerificationCancel, KeyVerificationEvent,
+                 KeyVerificationCancel, KeyVerificationEvent, EncryptionError,
                  KeyVerificationKey, KeyVerificationMac, KeyVerificationStart,
                  LocalProtocolError, LoginResponse, MatrixRoom, MegolmEvent,
                  RoomMessageText, ToDeviceError)
@@ -42,6 +42,8 @@ class Bot:
         jailbreakEnabled: Union[bool, None] = True,
         bing_auth_cookie: Union[str, None] = '',
         markdown_formatted: Union[bool, None] = False,
+        import_keys_path: Optional[str] = None,
+        import_keys_password: Optional[str] = None,
     ):
         if (homeserver is None or user_id is None
                 or device_id is None):
@@ -61,6 +63,8 @@ class Bot:
         self.room_id = room_id
         self.api_key = api_key
         self.chatgpt_api_endpoint = chatgpt_api_endpoint
+        self.import_keys_path = import_keys_path
+        self.import_keys_password = import_keys_password
 
         self.session = aiohttp.ClientSession()
 
@@ -173,7 +177,7 @@ class Bot:
         raw_user_message = event.body
 
         # print info to console
-        print(
+        logger.info(
             f"Message received in room {room.display_name}\n"
             f"{room.user_name(event.sender)} | {raw_user_message}"
         )
@@ -352,14 +356,12 @@ class Bot:
                 if "emoji" not in event.short_authentication_string:
                     estr = ("Other device does not support emoji verification "
                             f"{event.short_authentication_string}. Aborting.")
-                    print(estr)
                     logger.info(estr)
                     return
                 resp = await client.accept_key_verification(
                     event.transaction_id)
                 if isinstance(resp, ToDeviceError):
                     estr = f"accept_key_verification() failed with {resp}"
-                    print(estr)
                     logger.info(estr)
 
                 sas = client.key_verifications[event.transaction_id]
@@ -368,7 +370,6 @@ class Bot:
                 resp = await client.to_device(todevice_msg)
                 if isinstance(resp, ToDeviceError):
                     estr = f"to_device() failed with {resp}"
-                    print(estr)
                     logger.info(estr)
 
             elif isinstance(event, KeyVerificationCancel):  # anytime
@@ -391,7 +392,6 @@ class Bot:
                 # We only need to inform the user.
                 estr = (f"Verification has been cancelled by {event.sender} "
                         f"for reason \"{event.reason}\".")
-                print(estr)
                 logger.info(estr)
 
             elif isinstance(event, KeyVerificationKey):  # second step
@@ -409,7 +409,7 @@ class Bot:
                 """
                 sas = client.key_verifications[event.transaction_id]
 
-                print(f"{sas.get_emoji()}")
+                logger.info(f"{sas.get_emoji()}")
                 # don't log the emojis
 
                 # The bot process must run in forground with a screen and
@@ -422,36 +422,30 @@ class Bot:
                 if yn.lower() == "y":
                     estr = ("Match! The verification for this "
                             "device will be accepted.")
-                    print(estr)
                     logger.info(estr)
                     resp = await client.confirm_short_auth_string(
                         event.transaction_id)
                     if isinstance(resp, ToDeviceError):
                         estr = ("confirm_short_auth_string() "
                                 f"failed with {resp}")
-                        print(estr)
                         logger.info(estr)
                 elif yn.lower() == "n":  # no, don't match, reject
                     estr = ("No match! Device will NOT be verified "
                             "by rejecting verification.")
-                    print(estr)
                     logger.info(estr)
                     resp = await client.cancel_key_verification(
                         event.transaction_id, reject=True)
                     if isinstance(resp, ToDeviceError):
                         estr = (f"cancel_key_verification failed with {resp}")
-                        print(estr)
                         logger.info(estr)
                 else:  # C or anything for cancel
                     estr = ("Cancelled by user! Verification will be "
                             "cancelled.")
-                    print(estr)
                     logger.info(estr)
                     resp = await client.cancel_key_verification(
                         event.transaction_id, reject=False)
                     if isinstance(resp, ToDeviceError):
                         estr = (f"cancel_key_verification failed with {resp}")
-                        print(estr)
                         logger.info(estr)
 
             elif isinstance(event, KeyVerificationMac):  # third step
@@ -478,13 +472,11 @@ class Bot:
                     estr = (f"Cancelled or protocol error: Reason: {e}.\n"
                             f"Verification with {event.sender} not concluded. "
                             "Try again?")
-                    print(estr)
                     logger.info(estr)
                 else:
                     resp = await client.to_device(todevice_msg)
                     if isinstance(resp, ToDeviceError):
                         estr = f"to_device failed with {resp}"
-                        print(estr)
                         logger.info(estr)
                     estr = (f"sas.we_started_it = {sas.we_started_it}\n"
                             f"sas.sas_accepted = {sas.sas_accepted}\n"
@@ -492,7 +484,6 @@ class Bot:
                             f"sas.timed_out = {sas.timed_out}\n"
                             f"sas.verified = {sas.verified}\n"
                             f"sas.verified_devices = {sas.verified_devices}\n")
-                    print(estr)
                     logger.info(estr)
                     estr = ("Emoji verification was successful!\n"
                             "Initiate another Emoji verification from "
@@ -500,16 +491,13 @@ class Bot:
                             "Or if done verifying, hit Control-C to stop the "
                             "bot in order to restart it as a service or to "
                             "run it in the background.")
-                    print(estr)
                     logger.info(estr)
             else:
                 estr = (f"Received unexpected event type {type(event)}. "
                         f"Event is {event}. Event will be ignored.")
-                print(estr)
                 logger.info(estr)
         except BaseException:
             estr = traceback.format_exc()
-            print(estr)
             logger.info(estr)
 
     # !chat command
@@ -633,10 +621,21 @@ class Bot:
                 resp = await self.client.login(password=self.password)
                 if not isinstance(resp, LoginResponse):
                     logger.error("Login Failed")
-                    print(f"Login Failed: {resp}")
                     sys.exit(1)
             except Exception as e:
                 logger.error(f"Error: {e}", exc_info=True)
+
+    # import keys
+    async def import_keys(self):
+        resp = await self.client.import_keys(
+            self.import_keys_path,
+            self.import_keys_password
+        )
+        if isinstance(resp, EncryptionError):
+            logger.error(f"import_keys failed with {resp}")
+        else:
+            logger.info(
+                f"import_keys success, please remove import_keys configuration!!!")
 
     # sync messages in the room
     async def sync_forever(self, timeout=30000, full_state=True) -> None:

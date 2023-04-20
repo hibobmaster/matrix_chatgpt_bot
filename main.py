@@ -8,7 +8,7 @@ logger = getlogger()
 
 
 async def main():
-
+    need_import_keys = False
     if os.path.exists('config.json'):
         fp = open('config.json', 'r', encoding="utf8")
         config = json.load(fp)
@@ -25,7 +25,12 @@ async def main():
                          jailbreakEnabled=config.get('jailbreakEnabled'),
                          bing_auth_cookie=config.get('bing_auth_cookie'),
                          markdown_formatted=config.get('markdown_formatted'),
+                         import_keys_path=config.get('import_keys_path'),
+                         import_keys_password=config.get(
+                             'import_keys_password'),
                          )
+        if config.get('import_keys_path') and config.get('import_keys_password') is not None:
+            need_import_keys = True
 
     else:
         matrix_bot = Bot(homeserver=os.environ.get('HOMESERVER'),
@@ -42,10 +47,17 @@ async def main():
                          bing_auth_cookie=os.environ.get("BING_AUTH_COOKIE"),
                          markdown_formatted=os.environ.get(
                              "MARKDOWN_FORMATTED", "false").lower() in ('true', '1', 't'),
+                         import_keys_path=os.environ.get("IMPORT_KEYS_PATH"),
+                         import_keys_password=os.environ.get(
+                             "IMPORT_KEYS_PASSWORD"),
                          )
+        if os.environ.get("IMPORT_KEYS_PATH") and os.environ.get("IMPORT_KEYS_PASSWORD") is not None:
+            need_import_keys = True
 
     await matrix_bot.login()
-
+    if need_import_keys:
+            logger.info("start import_keys process, this may take a while...")
+            await matrix_bot.import_keys()
     await matrix_bot.sync_forever(timeout=30000, full_state=True)
 
 

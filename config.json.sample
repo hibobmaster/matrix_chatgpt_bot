@@ -10,5 +10,7 @@
   "access_token": "xxxxxxx",
   "bard_token": "xxxxxxx",
   "bing_auth_cookie": "xxxxxxxxxxx",
-  "markdown_formatted": true
+  "markdown_formatted": true,
+  "import_keys_path": "element-keys.txt",
+  "import_keys_password": "xxxxxxxxx"
 }

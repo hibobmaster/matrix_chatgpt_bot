@@ -16,10 +16,11 @@ def getlogger():
 
         # create formatters
         warn_format = logging.Formatter(
-            '%(name)s - %(funcName)s - %(levelname)s - %(message)s')
+            '%(asctime)s - %(funcName)s - %(levelname)s - %(message)s')
         error_format = logging.Formatter(
             '%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s')
-        info_format = logging.Formatter('%(message)s')
+        info_format = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s')
 
         # set formatter
         warn_handler.setFormatter(warn_format)
