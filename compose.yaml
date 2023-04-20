@@ -13,6 +13,8 @@ services:
       # - ./config.json:/app/config.json
       # use touch to create an empty file db, for persist database only
       - ./db:/app/db
+      # import_keys path
+      # - ./element-keys.txt:/app/element-keys.txt
     networks:
       - matrix_network
   # api:
