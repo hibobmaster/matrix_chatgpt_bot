@@ -16,6 +16,7 @@ This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI and Google Ba
 
 Docker method(Recommended):<br>
 Edit `config.json` or `.env` with proper values <br>
+For explainations and complete parameter list see: https://github.com/hibobmaster/matrix_chatgpt_bot/wiki <br>
 Create an empty file, for persist database only<br>
 
 ```bash
