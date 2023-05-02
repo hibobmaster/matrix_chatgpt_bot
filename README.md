@@ -115,3 +115,6 @@ https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/ <br>
 1. [matrix-nio](https://github.com/poljar/matrix-nio)
 2. [acheong08](https://github.com/acheong08)
 3. [node-chatgpt-api](https://github.com/waylaidwanderer/node-chatgpt-api)
+<a href="https://jb.gg/OpenSourceSupport" target="_blank">
+<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." width="200" height="200">
+</a>
