@@ -18,4 +18,6 @@ __pycache__
 .env.example
 .github
 settings.js
-
+.vscode
+Dockerfile_dev
+LICENSE
