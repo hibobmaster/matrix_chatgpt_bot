@@ -19,7 +19,7 @@ services:
       - matrix_network
   # api:
   # # bing api
-  #   image: hibobmaster/node-chatgpt-api:latest
+  #   image: ghcr.io/waylaidwanderer/node-chatgpt-api:latest
   #   container_name: node-chatgpt-api
   #   restart: always
   #   volumes:
