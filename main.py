@@ -25,11 +25,13 @@ async def main():
                          jailbreakEnabled=config.get('jailbreakEnabled'),
                          bing_auth_cookie=config.get('bing_auth_cookie'),
                          markdown_formatted=config.get('markdown_formatted'),
+                         output_four_images=config.get('output_four_images'),
                          import_keys_path=config.get('import_keys_path'),
                          import_keys_password=config.get(
                              'import_keys_password'),
                          )
-        if config.get('import_keys_path') and config.get('import_keys_password') is not None:
+        if config.get('import_keys_path') and \
+                config.get('import_keys_password') is not None:
             need_import_keys = True
 
     else:
@@ -43,21 +45,27 @@ async def main():
                          access_token=os.environ.get("ACCESS_TOKEN"),
                          bard_token=os.environ.get("BARD_TOKEN"),
                          jailbreakEnabled=os.environ.get(
-                             "JAILBREAKENABLED", "false").lower() in ('true', '1', 't'),
+                             "JAILBREAKENABLED", "false").lower() \
+                                in ('true', '1', 't'),
                          bing_auth_cookie=os.environ.get("BING_AUTH_COOKIE"),
                          markdown_formatted=os.environ.get(
-                             "MARKDOWN_FORMATTED", "false").lower() in ('true', '1', 't'),
+                             "MARKDOWN_FORMATTED", "false").lower() \
+                                in ('true', '1', 't'),
+                         output_four_images=os.environ.get(
+                             "OUTPUT_FOUR_IMAGES", "false").lower() \
+                                in ('true', '1', 't'),
                          import_keys_path=os.environ.get("IMPORT_KEYS_PATH"),
                          import_keys_password=os.environ.get(
                              "IMPORT_KEYS_PASSWORD"),
                          )
-        if os.environ.get("IMPORT_KEYS_PATH") and os.environ.get("IMPORT_KEYS_PASSWORD") is not None:
+        if os.environ.get("IMPORT_KEYS_PATH") \
+                and os.environ.get("IMPORT_KEYS_PASSWORD") is not None:
             need_import_keys = True
 
     await matrix_bot.login()
     if need_import_keys:
-            logger.info("start import_keys process, this may take a while...")
-            await matrix_bot.import_keys()
+        logger.info("start import_keys process, this may take a while...")
+        await matrix_bot.import_keys()
     await matrix_bot.sync_forever(timeout=30000, full_state=True)
 
 

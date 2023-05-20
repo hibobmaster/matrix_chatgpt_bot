@@ -26,6 +26,7 @@ sudo docker compose up -d
 
 <hr>
 Normal Method:<br>
+system dependece: `libolm-dev`
 
 1. Clone the repository and create virtual environment:
 
@@ -74,6 +75,7 @@ python main.py
 ## Usage
 
 To interact with the bot, simply send a message to the bot in the Matrix room with one of the two prompts:<br>
+- `!help` help message
 
 - `!gpt` To generate a one time response:
 
@@ -115,6 +117,8 @@ https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/ <br>
 1. [matrix-nio](https://github.com/poljar/matrix-nio)
 2. [acheong08](https://github.com/acheong08)
 3. [node-chatgpt-api](https://github.com/waylaidwanderer/node-chatgpt-api)
+4. [8go](https://github.com/8go/)
+
 <a href="https://jb.gg/OpenSourceSupport" target="_blank">
 <img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." width="200" height="200">
 </a>

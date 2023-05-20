@@ -42,6 +42,7 @@ class Bot:
         jailbreakEnabled: Union[bool, None] = True,
         bing_auth_cookie: Union[str, None] = '',
         markdown_formatted: Union[bool, None] = False,
+        output_four_images: Union[bool, None] = False,
         import_keys_path: Optional[str] = None,
         import_keys_password: Optional[str] = None,
     ):
@@ -88,6 +89,11 @@ class Bot:
         else:
             self.markdown_formatted = markdown_formatted
 
+        if output_four_images is None:
+            self.output_four_images = False
+        else:
+            self.output_four_images = output_four_images
+
         # initialize AsyncClient object
         self.store_path = os.getcwd()
         self.config = AsyncClientConfig(store=SqliteStore,
@@ -95,7 +101,8 @@ class Bot:
                                         store_sync_tokens=True,
                                         encryption_enabled=True,
                                         )
-        self.client = AsyncClient(homeserver=self.homeserver, user=self.user_id, device_id=self.device_id,
+        self.client = AsyncClient(homeserver=self.homeserver, user=self.user_id,
+                                  device_id=self.device_id,
                                   config=self.config, store_path=self.store_path,)
 
         if self.access_token is not None:
@@ -111,7 +118,7 @@ class Bot:
         self.client.add_to_device_callback(
             self.to_device_callback, (KeyVerificationEvent, ))
 
-        # regular expression to match keyword [!gpt {prompt}] [!chat {prompt}] [!bing {prompt}] [!pic {prompt}] [!bard {prompt}]
+        # regular expression to match keyword commands
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
         self.chat_prog = re.compile(r"^\s*!chat\s*(.+)$")
         self.bing_prog = re.compile(r"^\s*!bing\s*(.+)$")
@@ -149,7 +156,7 @@ class Bot:
     def __del__(self):
         try:
             loop = asyncio.get_running_loop()
-        except RuntimeError as e:
+        except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
         loop.run_until_complete(self._close())
@@ -202,10 +209,12 @@ class Bot:
                                             )
                     except Exception as e:
                         logger.error(e, exc_info=True)
-                        await send_room_message(self.client, room_id, reply_message=str(e))
+                        await send_room_message(self.client, room_id,
+                                                reply_message=str(e))
                 else:
                     logger.warning("No API_KEY provided")
-                    await send_room_message(self.client, room_id, reply_message="API_KEY not provided")
+                    await send_room_message(self.client, room_id,
+                                            reply_message="API_KEY not provided")
 
             m = self.gpt_prog.match(content_body)
             if m:
@@ -239,7 +248,8 @@ class Bot:
                         )
                     except Exception as e:
                         logger.error(e, exc_info=True)
-                        await send_room_message(self.client, room_id, reply_message=str(e))
+                        await send_room_message(self.client, room_id,
+                                                reply_message=str(e))
 
             # Image Generation by Microsoft Bing
             if self.bing_auth_cookie != '':
@@ -250,7 +260,8 @@ class Bot:
                         asyncio.create_task(self.pic(room_id, prompt))
                     except Exception as e:
                         logger.error(e, exc_info=True)
-                        await send_room_message(self.client, room_id, reply_message=str(e))
+                        await send_room_message(self.client, room_id,
+                                                reply_message=str(e))
 
             # Google's Bard
             if self.bard_token is not None:
@@ -281,7 +292,8 @@ class Bot:
             return
 
         logger.error(
-            f"Failed to decrypt message: {event.event_id} from {event.sender} in {room.room_id}\n" +
+            f"Failed to decrypt message: {event.event_id} \
+                from {event.sender} in {room.room_id}\n" +
             "Please make sure the bot current session is verified"
         )
 
@@ -501,7 +513,8 @@ class Bot:
             logger.info(estr)
 
     # !chat command
-    async def chat(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message):
+    async def chat(self, room_id, reply_to_event_id, prompt, sender_id,
+                   raw_user_message):
         await self.client.room_typing(room_id, timeout=120000)
         try:
             text = await self.chatbot.ask_async(prompt)
@@ -511,17 +524,23 @@ class Bot:
         try:
             text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
+                                    reply_to_event_id="", sender_id=sender_id,
+                                    user_message=raw_user_message,
+                                    markdown_formatted=self.markdown_formatted)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
     # !gpt command
-    async def gpt(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message) -> None:
+    async def gpt(self, room_id, reply_to_event_id, prompt, sender_id,
+                  raw_user_message) -> None:
         try:
             # sending typing state
             await self.client.room_typing(room_id, timeout=240000)
             # timeout 240s
-            text = await asyncio.wait_for(self.askgpt.oneTimeAsk(prompt, self.chatgpt_api_endpoint, self.headers), timeout=240)
+            text = await asyncio.wait_for(self.askgpt.oneTimeAsk(prompt,
+                                                                 self.chatgpt_api_endpoint,
+                                                                 self.headers),
+                                                                 timeout=240)
         except TimeoutError:
             logger.error("TimeoutException", exc_info=True)
             raise Exception("Timeout error")
@@ -531,12 +550,15 @@ class Bot:
         try:
             text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
+                                    reply_to_event_id="", sender_id=sender_id,
+                                    user_message=raw_user_message,
+                                    markdown_formatted=self.markdown_formatted)
         except Exception as e:
             logger.error(f"Error: {e}", exc_info=True)
 
     # !bing command
-    async def bing(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message) -> None:
+    async def bing(self, room_id, reply_to_event_id, prompt, sender_id,
+                   raw_user_message) -> None:
         try:
             # sending typing state
             await self.client.room_typing(room_id, timeout=180000)
@@ -551,12 +573,15 @@ class Bot:
         try:
             text = text.strip()
             await send_room_message(self.client, room_id, reply_message=text,
-                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
+                                    reply_to_event_id="", sender_id=sender_id,
+                                    user_message=raw_user_message,
+                                    markdown_formatted=self.markdown_formatted)
         except Exception as e:
             logger.error(e, exc_info=True)
 
     # !bard command
-    async def bard(self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message) -> None:
+    async def bard(self, room_id, reply_to_event_id, prompt, sender_id,
+                   raw_user_message) -> None:
         try:
             # sending typing state
             await self.client.room_typing(room_id)
@@ -567,7 +592,9 @@ class Bot:
         try:
             content = str(response['content']).strip()
             await send_room_message(self.client, room_id, reply_message=content,
-                                    reply_to_event_id="", sender_id=sender_id, user_message=raw_user_message, markdown_formatted=self.markdown_formatted)
+                                    reply_to_event_id="", sender_id=sender_id,
+                                    user_message=raw_user_message,
+                                    markdown_formatted=self.markdown_formatted)
         except Exception as e:
             logger.error(e, exc_info=True)
 
@@ -580,14 +607,16 @@ class Bot:
             try:
 
                 links = await self.imageGen.get_images(prompt)
-                image_path = await self.imageGen.save_images(links, "images")
+                image_path_list = await self.imageGen.save_images(links, "images",
+                                                             self.output_four_images)
             except Exception as e:
                 logger.error(f"Image Generation error: {e}", exc_info=True)
                 raise Exception(e)
 
             # send image
             try:
-                await send_room_image(self.client, room_id, image_path)
+                for image_path in image_path_list:
+                    await send_room_image(self.client, room_id, image_path)
                 await self.client.room_typing(room_id, typing_state=False)
             except Exception as e:
                 logger.error(e, exc_info=True)
@@ -605,7 +634,7 @@ class Bot:
                         "!bing [content], chat with context conversation powered by Bing AI\n" + \
                         "!bard [content], chat with Google's Bard\n" + \
                         "!pic [prompt], Image generation by Microsoft Bing\n" + \
-                        "!help, help message"
+                        "!help, help message"  # noqa: E501
 
             await send_room_message(self.client, room_id, reply_message=help_info)
         except Exception as e:
@@ -635,7 +664,7 @@ class Bot:
             logger.error(f"import_keys failed with {resp}")
         else:
             logger.info(
-                f"import_keys success, please remove import_keys configuration!!!")
+                "import_keys success, please remove import_keys configuration!!!")
 
     # sync messages in the room
     async def sync_forever(self, timeout=30000, full_state=True) -> None:

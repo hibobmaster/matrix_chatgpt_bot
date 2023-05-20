@@ -11,6 +11,7 @@
   "bard_token": "xxxxxxx",
   "bing_auth_cookie": "xxxxxxxxxxx",
   "markdown_formatted": true,
+  "output_four_images": true,
   "import_keys_path": "element-keys.txt",
   "import_keys_password": "xxxxxxxxx"
 }
