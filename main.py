@@ -29,6 +29,8 @@ async def main():
                          import_keys_path=config.get('import_keys_path'),
                          import_keys_password=config.get(
                              'import_keys_password'),
+                         flowise_api_url=config.get('flowise_api_url'),
+                         flowise_api_key=config.get('flowise_api_key'),
                          )
         if config.get('import_keys_path') and \
                 config.get('import_keys_password') is not None:
@@ -57,6 +59,8 @@ async def main():
                          import_keys_path=os.environ.get("IMPORT_KEYS_PATH"),
                          import_keys_password=os.environ.get(
                              "IMPORT_KEYS_PASSWORD"),
+                         flowise_api_url=os.environ.get("FLOWISE_API_URL"),
+                         flowise_api_key=os.environ.get("FLOWISE_API_KEY"),
                          )
         if os.environ.get("IMPORT_KEYS_PATH") \
                 and os.environ.get("IMPORT_KEYS_PASSWORD") is not None:

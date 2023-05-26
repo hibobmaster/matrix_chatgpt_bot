@@ -21,6 +21,7 @@ from send_image import send_room_image
 from send_message import send_room_message
 from v3 import Chatbot
 from bard import Bardbot
+from flowise import flowise_query
 
 logger = getlogger()
 
@@ -45,6 +46,8 @@ class Bot:
         output_four_images: Union[bool, None] = False,
         import_keys_path: Optional[str] = None,
         import_keys_password: Optional[str] = None,
+        flowise_api_url: Optional[str] = None,
+        flowise_api_key: Optional[str] = None
     ):
         if (homeserver is None or user_id is None
                 or device_id is None):
@@ -66,6 +69,8 @@ class Bot:
         self.chatgpt_api_endpoint = chatgpt_api_endpoint
         self.import_keys_path = import_keys_path
         self.import_keys_password = import_keys_password
+        self.flowise_api_url = flowise_api_url
+        self.flowise_api_key = flowise_api_key
 
         self.session = aiohttp.ClientSession()
 
@@ -124,6 +129,7 @@ class Bot:
         self.bing_prog = re.compile(r"^\s*!bing\s*(.+)$")
         self.bard_prog = re.compile(r"^\s*!bard\s*(.+)$")
         self.pic_prog = re.compile(r"^\s*!pic\s*(.+)$")
+        self.lc_prog = re.compile(r"^\s*!lc\s*(.+)$")
         self.help_prog = re.compile(r"^\s*!help\s*.*$")
 
         # initialize chatbot and chatgpt_api_endpoint
@@ -270,6 +276,24 @@ class Bot:
                     prompt = b.group(1)
                     try:
                         asyncio.create_task(self.bard(
+                            room_id,
+                            reply_to_event_id,
+                            prompt,
+                            sender_id,
+                            raw_user_message
+                        )
+                        )
+                    except Exception as e:
+                        logger.error(e, exc_info=True)
+                        await send_room_message(self.client, room_id, reply_message={e})
+
+            # lc command
+            if self.flowise_api_url is not None:
+                m = self.lc_prog.match(content_body)
+                if m:
+                    prompt = m.group(1)
+                    try:
+                        asyncio.create_task(self.lc(
                             room_id,
                             reply_to_event_id,
                             prompt,
@@ -598,6 +622,26 @@ class Bot:
         except Exception as e:
             logger.error(e, exc_info=True)
 
+    # !lc command
+    async def lc(self, room_id, reply_to_event_id, prompt, sender_id,
+                raw_user_message) -> None:
+        try:
+            # sending typing state
+            await self.client.room_typing(room_id)
+            if self.flowise_api_key is not None:
+                headers = {'Authorization': f'Bearer {self.flowise_api_key}'}
+                response = await asyncio.to_thread(flowise_query,
+                                               self.flowise_api_url, prompt, headers)
+            else:
+                response = await asyncio.to_thread(flowise_query,
+                                               self.flowise_api_url, prompt)
+            await send_room_message(self.client, room_id, reply_message=response,
+                                    reply_to_event_id="", sender_id=sender_id,
+                                    user_message=raw_user_message,
+                                    markdown_formatted=self.markdown_formatted)
+        except Exception as e:
+            raise Exception(e)
+
     # !pic command
 
     async def pic(self, room_id, prompt):
@@ -629,11 +673,12 @@ class Bot:
         try:
             # sending typing state
             await self.client.room_typing(room_id)
-            help_info = "!gpt [content], generate response without context conversation\n" + \
-                        "!chat [content], chat with context conversation\n" + \
-                        "!bing [content], chat with context conversation powered by Bing AI\n" + \
-                        "!bard [content], chat with Google's Bard\n" + \
+            help_info = "!gpt [prompt], generate response without context conversation\n" + \
+                        "!chat [prompt], chat with context conversation\n" + \
+                        "!bing [prompt], chat with context conversation powered by Bing AI\n" + \
+                        "!bard [prompt], chat with Google's Bard\n" + \
                         "!pic [prompt], Image generation by Microsoft Bing\n" + \
+                        "!lc [prompt], chat using langchain api\n" + \
                         "!help, help message"  # noqa: E501
 
             await send_room_message(self.client, room_id, reply_message=help_info)

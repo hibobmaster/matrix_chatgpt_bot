@@ -1,13 +1,13 @@
 ## Introduction
 
-This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI and Google Bard to generate responses to user inputs. The bot responds to five types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` and `!bard` depending on the first word of the prompt.
+This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI and Google Bard to generate responses to user inputs. The bot responds to six types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` and `!bard` and `!lc` depending on the first word of the prompt.
 ![Bing](https://user-images.githubusercontent.com/32976627/231073146-3e380217-a6a2-413d-9203-ab36965b909d.png)
 ![image](https://user-images.githubusercontent.com/32976627/232036790-e830145c-914e-40be-b3e6-c02cba93329c.png)
 ![ChatGPT](https://i.imgur.com/kK4rnPf.jpeg)
 
 ## Feature
 
-1. Support Openai ChatGPT and Bing AI and Google Bard(US only at the moment)
+1. Support Openai ChatGPT and Bing AI and Google Bard and Langchain([Flowise](https://github.com/FlowiseAI/Flowise))
 2. Support Bing Image Creator
 3. Support E2E Encrypted Room
 4. Colorful code blocks
@@ -26,7 +26,7 @@ sudo docker compose up -d
 
 <hr>
 Normal Method:<br>
-system dependece: `libolm-dev`
+system dependece: <code>libolm-dev</code>
 
 1. Clone the repository and create virtual environment:
 
@@ -99,7 +99,10 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 ```
 !bard Building a website can be done in 10 simple steps
 ```
-
+- `!lc` To chat using langchain api endpoint
+```
+!lc 人生如音乐，欢乐且自由
+```
 - `!pic` To generate an image from Microsoft Bing
 
 ```

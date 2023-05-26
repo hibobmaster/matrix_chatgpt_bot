@@ -13,5 +13,7 @@
   "markdown_formatted": true,
   "output_four_images": true,
   "import_keys_path": "element-keys.txt",
-  "import_keys_password": "xxxxxxxxx"
+  "import_keys_password": "xxxxxxxxx",
+  "flowise_api_url": "http://localhost:3000/api/v1/prediction/6deb3c89-45bf-4ac4-a0b0-b2d5ef249d21",
+  "flowise_api_key": "U3pe0bbVDWOyoJtsDzFJjRvHKTP3FRjODwuM78exC3A="
 }
