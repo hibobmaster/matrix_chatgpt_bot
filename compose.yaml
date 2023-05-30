@@ -2,7 +2,7 @@ services:
   app:
     image: hibobmaster/matrixchatgptbot:latest
     container_name: matrix_chatgpt_bot
-    restart: always
+    restart: unless-stopped
     # build:
     #   context: .
     #   dockerfile: ./Dockerfile
@@ -19,11 +19,21 @@ services:
       - matrix_network
   # api:
   # # bing api
-  #   image: ghcr.io/waylaidwanderer/node-chatgpt-api:latest
+  #   image: hibobmaster/node-chatgpt-api:latest
   #   container_name: node-chatgpt-api
-  #   restart: always
+  #   restart: unless-stopped
   #   volumes:
   #     - ./settings.js:/var/chatgpt-api/settings.js
+  #   networks:
+  #     - matrix_network
+
+  # pandora:
+  #   image: pengzhile/pandora
+  #   container_name: pandora
+  #   restart: unless-stopped
+  #   environment:
+  #     - PANDORA_ACCESS_TOKEN="xxxxxxxxxxxxxx"
+  #     - PANDORA_SERVER="0.0.0.0:8008"
   #   networks:
   #     - matrix_network
 

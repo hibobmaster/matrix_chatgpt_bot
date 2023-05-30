@@ -1,16 +1,18 @@
 ## Introduction
 
-This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI and Google Bard to generate responses to user inputs. The bot responds to six types of prompts: `!gpt`, `!chat` and `!bing` and `!pic` and `!bard` and `!lc` depending on the first word of the prompt.
+This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI and Google Bard to generate responses to user inputs. The bot responds to these commands: `!gpt`, `!chat` and `!bing` and `!pic` and `!bard` and `!talk`, `!goon`, `!new` and `!lc` and `!help` depending on the first word of the prompt.
 ![Bing](https://user-images.githubusercontent.com/32976627/231073146-3e380217-a6a2-413d-9203-ab36965b909d.png)
 ![image](https://user-images.githubusercontent.com/32976627/232036790-e830145c-914e-40be-b3e6-c02cba93329c.png)
 ![ChatGPT](https://i.imgur.com/kK4rnPf.jpeg)
 
 ## Feature
 
-1. Support Openai ChatGPT and Bing AI and Google Bard and Langchain([Flowise](https://github.com/FlowiseAI/Flowise))
+1. Support Openai ChatGPT and Bing AI and Google Bard
 2. Support Bing Image Creator
 3. Support E2E Encrypted Room
 4. Colorful code blocks
+5. Langchain([Flowise](https://github.com/FlowiseAI/Flowise))
+6. ChatGPT Web ([pandora](https://github.com/pengzhile/pandora) with Session isolation support)
 
 ## Installation and Setup
 
@@ -108,6 +110,12 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 ```
 !pic A bridal bouquet made of succulents
 ```
+
+The following commands need pandora http api:
+https://github.com/pengzhile/pandora/blob/master/doc/wiki_en.md#http-restful-api
+- `!talk + [prompt]`  Chat using chatGPT web with context conversation
+- `!goon` Ask chatGPT to complete the missing part from previous conversation
+- `!new` Start a new converstaion
 
 ## Bing AI and Image Generation
 
