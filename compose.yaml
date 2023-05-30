@@ -32,8 +32,8 @@ services:
   #   container_name: pandora
   #   restart: unless-stopped
   #   environment:
-  #     - PANDORA_ACCESS_TOKEN="xxxxxxxxxxxxxx"
-  #     - PANDORA_SERVER="0.0.0.0:8008"
+  #     - PANDORA_ACCESS_TOKEN=xxxxxxxxxxxxxx
+  #     - PANDORA_SERVER=0.0.0.0:8008
   #   networks:
   #     - matrix_network
 
