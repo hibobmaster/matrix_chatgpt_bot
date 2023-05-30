@@ -136,8 +136,9 @@ class ImageGenAsync:
             raise Exception("No images")
         return normal_image_links
 
-    async def save_images(self, links: list, output_dir: str,
-                        output_four_images: bool) -> list:
+    async def save_images(
+        self, links: list, output_dir: str, output_four_images: bool
+    ) -> list:
         """
         Saves images to output directory
         """
@@ -151,25 +152,33 @@ class ImageGenAsync:
                 image_name = str(uuid4())
                 image_path = os.path.join(output_dir, f"{image_name}.jpeg")
                 try:
-                    async with self.session.get(link, raise_for_status=True) as response:
+                    async with self.session.get(
+                        link, raise_for_status=True
+                    ) as response:
                         with open(image_path, "wb") as output_file:
                             async for chunk in response.content.iter_chunked(8192):
                                 output_file.write(chunk)
                     image_path_list.append(image_path)
                 except aiohttp.client_exceptions.InvalidURL as url_exception:
-                    raise Exception("Inappropriate contents found in the generated images. Please try again or try another prompt.") from url_exception  # noqa: E501
+                    raise Exception(
+                        "Inappropriate contents found in the generated images. Please try again or try another prompt."
+                    ) from url_exception  # noqa: E501
         else:
             image_name = str(uuid4())
             if links:
                 link = links.pop()
                 try:
-                    async with self.session.get(link, raise_for_status=True) as response:
+                    async with self.session.get(
+                        link, raise_for_status=True
+                    ) as response:
                         image_path = os.path.join(output_dir, f"{image_name}.jpeg")
                         with open(image_path, "wb") as output_file:
                             async for chunk in response.content.iter_chunked(8192):
                                 output_file.write(chunk)
                         image_path_list.append(image_path)
                 except aiohttp.client_exceptions.InvalidURL as url_exception:
-                    raise Exception("Inappropriate contents found in the generated images. Please try again or try another prompt.") from url_exception  # noqa: E501
+                    raise Exception(
+                        "Inappropriate contents found in the generated images. Please try again or try another prompt."
+                    ) from url_exception  # noqa: E501
 
         return image_path_list

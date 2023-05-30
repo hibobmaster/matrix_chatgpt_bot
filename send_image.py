@@ -12,8 +12,7 @@ from log import getlogger
 logger = getlogger()
 
 
-async def send_room_image(client: AsyncClient,
-                          room_id: str, image: str):
+async def send_room_image(client: AsyncClient, room_id: str, image: str):
     """
     image: image path
     """
@@ -36,8 +35,10 @@ async def send_room_image(client: AsyncClient,
         await client.room_send(
             room_id,
             message_type="m.room.message",
-            content={"msgtype": "m.text",
-                     "body": f"Failed to generate image. Failure response: {resp}", },
+            content={
+                "msgtype": "m.text",
+                "body": f"Failed to generate image. Failure response: {resp}",
+            },
             ignore_unverified_devices=True,
         )
         return
@@ -57,6 +58,5 @@ async def send_room_image(client: AsyncClient,
     try:
         await client.room_send(room_id, message_type="m.room.message", content=content)
     except Exception as e:
-        logger.error(
-            f"Image send of file {image} failed.\n Error: {e}", exc_info=True)
+        logger.error(f"Image send of file {image} failed.\n Error: {e}", exc_info=True)
         raise Exception(e)

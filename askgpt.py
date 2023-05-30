@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import json
 from log import getlogger
+
 logger = getlogger()
 
 
@@ -22,8 +23,9 @@ class askGPT:
         max_try = 2
         while max_try > 0:
             try:
-                async with self.session.post(url=api_endpoint,
-                                             json=jsons, headers=headers, timeout=120) as response:
+                async with self.session.post(
+                    url=api_endpoint, json=jsons, headers=headers, timeout=120
+                ) as response:
                     status_code = response.status
                     if not status_code == 200:
                         # print failed reason
@@ -34,6 +36,6 @@ class askGPT:
                         continue
 
                     resp = await response.read()
-                    return json.loads(resp)['choices'][0]['message']['content']
+                    return json.loads(resp)["choices"][0]["message"]["content"]
             except Exception as e:
                 raise Exception(e)

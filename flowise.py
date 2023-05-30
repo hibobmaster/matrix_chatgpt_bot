@@ -1,5 +1,6 @@
 import requests
 
+
 def flowise_query(api_url: str, prompt: str, headers: dict = None) -> str:
     """
     Sends a query to the Flowise API and returns the response.
@@ -12,8 +13,9 @@ def flowise_query(api_url: str, prompt: str, headers: dict = None) -> str:
         str: The response from the API.
     """
     if headers:
-        response = requests.post(api_url, json={"question": prompt},
-                                 headers=headers, timeout=120)
+        response = requests.post(
+            api_url, json={"question": prompt}, headers=headers, timeout=120
+        )
     else:
         response = requests.post(api_url, json={"question": prompt}, timeout=120)
     return response.text

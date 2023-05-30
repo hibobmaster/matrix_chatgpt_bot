@@ -56,8 +56,7 @@ class Chatbot:
             },
         )
         proxy = (
-            proxy or os.environ.get(
-                "all_proxy") or os.environ.get("ALL_PROXY") or None
+            proxy or os.environ.get("all_proxy") or os.environ.get("ALL_PROXY") or None
         )
 
         if proxy:
@@ -160,10 +159,8 @@ class Chatbot:
         self.__truncate_conversation(convo_id=convo_id)
         # Get response
         response = self.session.post(
-            os.environ.get(
-                "API_URL") or "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+            os.environ.get("API_URL") or "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
             json={
                 "model": self.engine,
                 "messages": self.conversation[convo_id],
@@ -209,8 +206,7 @@ class Chatbot:
                 content = delta["content"]
                 full_response += content
                 yield content
-        self.add_to_conversation(
-            full_response, response_role, convo_id=convo_id)
+        self.add_to_conversation(full_response, response_role, convo_id=convo_id)
 
     async def ask_stream_async(
         self,
@@ -230,10 +226,8 @@ class Chatbot:
         # Get response
         async with self.aclient.stream(
             "post",
-            os.environ.get(
-                "API_URL") or "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+            os.environ.get("API_URL") or "https://api.openai.com/v1/chat/completions",
+            headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
             json={
                 "model": self.engine,
                 "messages": self.conversation[convo_id],
@@ -281,8 +275,7 @@ class Chatbot:
                     content: str = delta["content"]
                     full_response += content
                     yield content
-        self.add_to_conversation(
-            full_response, response_role, convo_id=convo_id)
+        self.add_to_conversation(full_response, response_role, convo_id=convo_id)
 
     async def ask_async(
         self,
