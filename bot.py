@@ -87,6 +87,7 @@ class Bot:
         self.import_keys_password = import_keys_password
         self.flowise_api_url = flowise_api_url
         self.flowise_api_key = flowise_api_key
+        self.pandora_api_endpoint = pandora_api_endpoint
 
         self.session = aiohttp.ClientSession()
 
@@ -184,7 +185,6 @@ class Bot:
 
         # initialize pandora
         if pandora_api_endpoint is not None:
-            self.pandora_api_endpoint = pandora_api_endpoint
             self.pandora = Pandora(
                 api_endpoint=pandora_api_endpoint, clientSession=self.session
             )
@@ -193,7 +193,7 @@ class Bot:
             else:
                 self.pandora_api_model = pandora_api_model
 
-            self.pandora_data = {}
+        self.pandora_data = {}
 
     def __del__(self):
         try:
