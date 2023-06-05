@@ -10,7 +10,7 @@ class askGPT:
     def __init__(self, session: aiohttp.ClientSession):
         self.session = session
 
-    async def oneTimeAsk(self, prompt: str, api_endpoint: str, headers: dict) -> str:
+    async def oneTimeAsk(self, prompt: str, api_endpoint: str, headers: dict, temperature: float = 0.8) -> str:
         jsons = {
             "model": "gpt-3.5-turbo",
             "messages": [
@@ -19,6 +19,7 @@ class askGPT:
                     "content": prompt,
                 },
             ],
+            "temperature": temperature,
         }
         max_try = 2
         while max_try > 0:
@@ -31,8 +32,6 @@ class askGPT:
                         # print failed reason
                         logger.warning(str(response.reason))
                         max_try = max_try - 1
-                        # wait 2s
-                        await asyncio.sleep(2)
                         continue
 
                     resp = await response.read()

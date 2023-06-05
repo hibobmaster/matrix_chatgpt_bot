@@ -4,9 +4,8 @@
   "password": "xxxxxxxxxxxxxxxxxx",
   "device_id": "ECYEOKVPLG",
   "room_id": "!FYCmBSkCRUNvZDBaDQ:matrix.qqs.tw",
-  "api_key": "xxxxxxxxxxxxxxxxxxxxxxxx",
-  "bing_api_endpoint": "http://api:3000/conversation",
-  "jailbreakEnabled": true,
+  "openai_api_key": "xxxxxxxxxxxxxxxxxxxxxxxx",
+  "api_endpoint": "http://api:3000/conversation",
   "access_token": "xxxxxxx",
   "bard_token": "xxxxxxx",
   "bing_auth_cookie": "xxxxxxxxxxx",
@@ -17,5 +16,6 @@
   "flowise_api_url": "http://localhost:3000/api/v1/prediction/6deb3c89-45bf-4ac4-a0b0-b2d5ef249d21",
   "flowise_api_key": "U3pe0bbVDWOyoJtsDzFJjRvHKTP3FRjODwuM78exC3A=",
   "pandora_api_endpoint": "http://127.0.0.1:8008",
-  "pandora_api_model": "text-davinci-002-render-sha-mobile"
+  "pandora_api_model": "text-davinci-002-render-sha-mobile",
+  "temperature": 0.8
 }
