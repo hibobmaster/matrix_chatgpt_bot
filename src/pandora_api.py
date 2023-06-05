@@ -1,11 +1,15 @@
-# https://github.com/pengzhile/pandora/blob/master/doc/HTTP-API.md
+# API wrapper for https://github.com/pengzhile/pandora/blob/master/doc/HTTP-API.md
 import uuid
 import aiohttp
 import asyncio
 
 
 class Pandora:
-    def __init__(self, api_endpoint: str, clientSession: aiohttp.ClientSession) -> None:
+    def __init__(
+        self,
+        api_endpoint: str,
+        clientSession: aiohttp.ClientSession,
+    ) -> None:
         self.api_endpoint = api_endpoint.rstrip("/")
         self.session = clientSession
 

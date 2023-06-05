@@ -6,7 +6,8 @@ import random
 import string
 import re
 import json
-import requests
+import httpx
+
 
 class Bardbot:
     """
@@ -33,11 +34,10 @@ class Bardbot:
     ]
 
     def __init__(
-            self, 
-            session_id: str,
-            timeout: int = 20,
-            session: requests.Session = None,
-        ):
+        self,
+        session_id: str,
+        timeout: int = 20,
+    ):
         headers = {
             "Host": "bard.google.com",
             "X-Same-Domain": "1",
@@ -51,19 +51,28 @@ class Bardbot:
         self.response_id = ""
         self.choice_id = ""
         self.session_id = session_id
-        self.session = session or requests.Session()
+        self.session = httpx.AsyncClient()
         self.session.headers = headers
         self.session.cookies.set("__Secure-1PSID", session_id)
-        self.SNlM0e = self.__get_snlm0e()
         self.timeout = timeout
 
-    def __get_snlm0e(self):
+    @classmethod
+    async def create(
+        cls,
+        session_id: str,
+        timeout: int = 20,
+    ) -> "Bardbot":
+        instance = cls(session_id, timeout)
+        instance.SNlM0e = await instance.__get_snlm0e()
+        return instance
+
+    async def __get_snlm0e(self):
         # Find "SNlM0e":"<ID>"
         if not self.session_id or self.session_id[-1] != ".":
             raise Exception(
                 "__Secure-1PSID value must end with a single dot. Enter correct __Secure-1PSID value.",
             )
-        resp = self.session.get(
+        resp = await self.session.get(
             "https://bard.google.com/",
             timeout=10,
         )
@@ -78,7 +87,7 @@ class Bardbot:
             )
         return SNlM0e.group(1)
 
-    def ask(self, message: str) -> dict:
+    async def ask(self, message: str) -> dict:
         """
         Send a message to Google Bard and return the response.
         :param message: The message to send to Google Bard.
@@ -101,7 +110,7 @@ class Bardbot:
             "f.req": json.dumps([None, json.dumps(message_struct)]),
             "at": self.SNlM0e,
         }
-        resp = self.session.post(
+        resp = await self.session.post(
             "https://bard.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate",
             params=params,
             data=data,

@@ -1,4 +1,8 @@
 import logging
+from pathlib import Path
+import os
+
+log_path = Path(os.path.dirname(__file__)).parent / "bot.log"
 
 
 def getlogger():
@@ -9,18 +13,19 @@ def getlogger():
         # create handlers
         warn_handler = logging.StreamHandler()
         info_handler = logging.StreamHandler()
-        error_handler = logging.FileHandler('bot.log', mode='a')
+        error_handler = logging.FileHandler("bot.log", mode="a")
         warn_handler.setLevel(logging.WARNING)
         error_handler.setLevel(logging.ERROR)
         info_handler.setLevel(logging.INFO)
 
         # create formatters
         warn_format = logging.Formatter(
-            '%(asctime)s - %(funcName)s - %(levelname)s - %(message)s')
+            "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
+        )
         error_format = logging.Formatter(
-            '%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s')
-        info_format = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s')
+            "%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s"
+        )
+        info_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
         # set formatter
         warn_handler.setFormatter(warn_format)

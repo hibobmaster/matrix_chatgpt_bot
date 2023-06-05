@@ -12,7 +12,8 @@ This is a simple Matrix bot that uses OpenAI's GPT API and Bing AI and Google Ba
 3. Support E2E Encrypted Room
 4. Colorful code blocks
 5. Langchain([Flowise](https://github.com/FlowiseAI/Flowise))
-6. ChatGPT Web ([pandora](https://github.com/pengzhile/pandora) with Session isolation support)
+6. ChatGPT Web ([pandora](https://github.com/pengzhile/pandora))
+7. Session isolation support(`!chat`,`!bing`,`!bard`,`!talk`)
 
 ## Installation and Setup
 
@@ -50,8 +51,8 @@ pip install -r requirements.txt
    Use password to login(recommended) or provide `access_token` <br>
    If not set:<br>
    `room_id`: bot will work in the room where it is in <br>
-   `api_key`: `!chat` command will not work <br>
-   `bing_api_endpoint`: `!bing` command will not work <br>
+   `openai_api_key`: `!gpt` `!chat` command will not work <br>
+   `api_endpoint`: `!bing` `!chat` command will not work <br>
    `bing_auth_cookie`: `!pic` command will not work
 
 ```json
@@ -61,9 +62,9 @@ pip install -r requirements.txt
   "password": "YOUR_PASSWORD",
   "device_id": "YOUR_DEVICE_ID",
   "room_id": "YOUR_ROOM_ID",
-  "api_key": "YOUR_API_KEY",
+  "openai_api_key": "YOUR_API_KEY",
   "access_token": "xxxxxxxxxxxxxx",
-  "bing_api_endpoint": "xxxxxxxxx",
+  "api_endpoint": "xxxxxxxxx",
   "bing_auth_cookie": "xxxxxxxxxx"
 }
 ```
@@ -71,7 +72,7 @@ pip install -r requirements.txt
 4. Start the bot:
 
 ```
-python main.py
+python src/main.py
 ```
 
 ## Usage
@@ -110,12 +111,13 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 ```
 !pic A bridal bouquet made of succulents
 ```
+- `!new + {chat,bing,bard,talk}` Start a new converstaion
 
 The following commands need pandora http api:
 https://github.com/pengzhile/pandora/blob/master/doc/wiki_en.md#http-restful-api
 - `!talk + [prompt]`  Chat using chatGPT web with context conversation
 - `!goon` Ask chatGPT to complete the missing part from previous conversation
-- `!new` Start a new converstaion
+
 
 ## Bing AI and Image Generation
 

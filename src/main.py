@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from pathlib import Path
 from bot import Bot
 from log import getlogger
 
@@ -9,8 +10,9 @@ logger = getlogger()
 
 async def main():
     need_import_keys = False
-    if os.path.exists("config.json"):
-        fp = open("config.json", "r", encoding="utf8")
+    config_path = Path(os.path.dirname(__file__)).parent / "config.json"
+    if os.path.isfile(config_path):
+        fp = open(config_path, "r", encoding="utf8")
         config = json.load(fp)
 
         matrix_bot = Bot(
@@ -19,8 +21,8 @@ async def main():
             password=config.get("password"),
             device_id=config.get("device_id"),
             room_id=config.get("room_id"),
-            api_key=config.get("api_key"),
-            bing_api_endpoint=config.get("bing_api_endpoint"),
+            openai_api_key=config.get("openai_api_key"),
+            api_endpoint=config.get("api_endpoint"),
             access_token=config.get("access_token"),
             bard_token=config.get("bard_token"),
             jailbreakEnabled=config.get("jailbreakEnabled"),
@@ -33,6 +35,7 @@ async def main():
             flowise_api_key=config.get("flowise_api_key"),
             pandora_api_endpoint=config.get("pandora_api_endpoint"),
             pandora_api_model=config.get("pandora_api_model"),
+            temperature=float(config.get("temperature", 0.8)),
         )
         if (
             config.get("import_keys_path")
@@ -47,8 +50,8 @@ async def main():
             password=os.environ.get("PASSWORD"),
             device_id=os.environ.get("DEVICE_ID"),
             room_id=os.environ.get("ROOM_ID"),
-            api_key=os.environ.get("OPENAI_API_KEY"),
-            bing_api_endpoint=os.environ.get("BING_API_ENDPOINT"),
+            openai_api_key=os.environ.get("OPENAI_API_KEY"),
+            api_endpoint=os.environ.get("API_ENDPOINT"),
             access_token=os.environ.get("ACCESS_TOKEN"),
             bard_token=os.environ.get("BARD_TOKEN"),
             jailbreakEnabled=os.environ.get("JAILBREAKENABLED", "false").lower()
@@ -64,6 +67,7 @@ async def main():
             flowise_api_key=os.environ.get("FLOWISE_API_KEY"),
             pandora_api_endpoint=os.environ.get("PANDORA_API_ENDPOINT"),
             pandora_api_model=os.environ.get("PANDORA_API_MODEL"),
+            temperature=float(os.environ.get("TEMPERATURE", 0.8)),
         )
         if (
             os.environ.get("IMPORT_KEYS_PATH")
