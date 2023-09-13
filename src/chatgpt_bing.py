@@ -1,5 +1,4 @@
 import aiohttp
-import asyncio
 from log import getlogger
 
 logger = getlogger()
@@ -42,8 +41,8 @@ async def test_chatgpt():
             {
                 "clientOptions": {
                     "clientToUse": "chatgpt",
-                }
-            }
+                },
+            },
         )
         resp = await gptbot.queryChatGPT(payload)
         content = resp["response"]
@@ -63,12 +62,12 @@ async def test_bing():
             {
                 "clientOptions": {
                     "clientToUse": "bing",
-                }
-            }
+                },
+            },
         )
         resp = await gptbot.queryBing(payload)
         content = "".join(
-            [body["text"] for body in resp["details"]["adaptiveCards"][0]["body"]]
+            [body["text"] for body in resp["details"]["adaptiveCards"][0]["body"]],
         )
         payload["conversationSignature"] = resp["conversationSignature"]
         payload["conversationId"] = resp["conversationId"]

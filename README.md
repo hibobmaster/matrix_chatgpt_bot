@@ -5,7 +5,7 @@ This is a simple Matrix bot that support using OpenAI API, Langchain to generate
 
 ## Feature
 
-1. Support official openai api and self host models([LocalAI](https://github.com/go-skynet/LocalAI))   
+1. Support official openai api and self host models([LocalAI](https://github.com/go-skynet/LocalAI))
 2. Support E2E Encrypted Room
 3. Colorful code blocks
 4. Langchain([Flowise](https://github.com/FlowiseAI/Flowise))

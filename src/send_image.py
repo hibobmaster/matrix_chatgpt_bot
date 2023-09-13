@@ -3,11 +3,13 @@ code derived from:
 https://matrix-nio.readthedocs.io/en/latest/examples.html#sending-an-image
 """
 import os
+
 import aiofiles.os
 import magic
-from PIL import Image
-from nio import AsyncClient, UploadResponse
 from log import getlogger
+from nio import AsyncClient
+from nio import UploadResponse
+from PIL import Image
 
 logger = getlogger()
 
@@ -31,13 +33,13 @@ async def send_room_image(client: AsyncClient, room_id: str, image: str):
             filesize=file_stat.st_size,
         )
     if not isinstance(resp, UploadResponse):
-        logger.warning(f"Failed to generate image. Failure response: {resp}")
+        logger.warning(f"Failed to upload image. Failure response: {resp}")
         await client.room_send(
             room_id,
             message_type="m.room.message",
             content={
                 "msgtype": "m.text",
-                "body": f"Failed to generate image. Failure response: {resp}",
+                "body": f"Failed to upload image. Failure response: {resp}",
             },
             ignore_unverified_devices=True,
         )

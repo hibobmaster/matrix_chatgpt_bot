@@ -1,7 +1,8 @@
 # API wrapper for https://github.com/pengzhile/pandora/blob/master/doc/HTTP-API.md
-import uuid
-import aiohttp
 import asyncio
+import uuid
+
+import aiohttp
 
 
 class Pandora:

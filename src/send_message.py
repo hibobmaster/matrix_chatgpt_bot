@@ -1,7 +1,8 @@
-from nio import AsyncClient
 import re
+
 import markdown
 from log import getlogger
+from nio import AsyncClient
 
 logger = getlogger()
 
@@ -28,7 +29,8 @@ async def send_room_message(
                     "body": reply_message,
                     "format": "org.matrix.custom.html",
                     "formatted_body": markdown.markdown(
-                        reply_message, extensions=["nl2br", "tables", "fenced_code"]
+                        reply_message,
+                        extensions=["nl2br", "tables", "fenced_code"],
                     ),
                 }
             else:

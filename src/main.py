@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 from pathlib import Path
+
 from bot import Bot
 from log import getlogger
 
@@ -12,7 +13,7 @@ async def main():
     need_import_keys = False
     config_path = Path(os.path.dirname(__file__)).parent / "config.json"
     if os.path.isfile(config_path):
-        fp = open(config_path, "r", encoding="utf8")
+        fp = open(config_path, encoding="utf8")
         config = json.load(fp)
 
         matrix_bot = Bot(

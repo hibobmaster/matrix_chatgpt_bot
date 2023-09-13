@@ -1,6 +1,6 @@
 import logging
-from pathlib import Path
 import os
+from pathlib import Path
 
 log_path = Path(os.path.dirname(__file__)).parent / "bot.log"
 
@@ -20,10 +20,10 @@ def getlogger():
 
         # create formatters
         warn_format = logging.Formatter(
-            "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s"
+            "%(asctime)s - %(funcName)s - %(levelname)s - %(message)s",
         )
         error_format = logging.Formatter(
-            "%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s"
+            "%(asctime)s - %(name)s - %(funcName)s - %(levelname)s - %(message)s",
         )
         info_format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 

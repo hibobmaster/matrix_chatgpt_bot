@@ -1,6 +1,6 @@
-import aiohttp
-import asyncio
 import json
+
+import aiohttp
 from log import getlogger
 
 logger = getlogger()
@@ -10,7 +10,9 @@ class askGPT:
     def __init__(self, session: aiohttp.ClientSession):
         self.session = session
 
-    async def oneTimeAsk(self, prompt: str, api_endpoint: str, headers: dict, temperature: float = 0.8) -> str:
+    async def oneTimeAsk(
+        self, prompt: str, api_endpoint: str, headers: dict, temperature: float = 0.8
+    ) -> str:
         jsons = {
             "model": "gpt-3.5-turbo",
             "messages": [
@@ -25,7 +27,10 @@ class askGPT:
         while max_try > 0:
             try:
                 async with self.session.post(
-                    url=api_endpoint, json=jsons, headers=headers, timeout=120
+                    url=api_endpoint,
+                    json=jsons,
+                    headers=headers,
+                    timeout=120,
                 ) as response:
                     status_code = response.status
                     if not status_code == 200:

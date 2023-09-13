@@ -822,7 +822,7 @@ class Bot:
             )
         except TimeoutError:
             await send_room_message(self.client, room_id, reply_message="TimeoutError")
-        except Exception as e:
+        except Exception:
             await send_room_message(
                 self.client,
                 room_id,
@@ -838,9 +838,13 @@ class Bot:
             await self.client.room_typing(room_id)
             if self.flowise_api_key is not None:
                 headers = {"Authorization": f"Bearer {self.flowise_api_key}"}
-                response = await flowise_query(self.flowise_api_url, prompt, self.session, headers)
+                response = await flowise_query(
+                    self.flowise_api_url, prompt, self.session, headers
+                )
             else:
-                response = await flowise_query(self.flowise_api_url, prompt, self.session)
+                response = await flowise_query(
+                    self.flowise_api_url, prompt, self.session
+                )
             await send_room_message(
                 self.client,
                 room_id,
@@ -850,7 +854,7 @@ class Bot:
                 user_message=raw_user_message,
                 markdown_formatted=self.markdown_formatted,
             )
-        except Exception as e:
+        except Exception:
             await send_room_message(
                 self.client,
                 room_id,
