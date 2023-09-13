@@ -2,6 +2,8 @@ import asyncio
 import json
 import os
 from pathlib import Path
+import signal
+import sys
 
 from bot import Bot
 from log import getlogger
@@ -13,8 +15,12 @@ async def main():
     need_import_keys = False
     config_path = Path(os.path.dirname(__file__)).parent / "config.json"
     if os.path.isfile(config_path):
-        fp = open(config_path, encoding="utf8")
-        config = json.load(fp)
+        try:
+            fp = open(config_path, encoding="utf8")
+            config = json.load(fp)
+        except Exception:
+            logger.error("config.json load error, please check the file")
+            sys.exit(1)
 
         matrix_bot = Bot(
             homeserver=config.get("homeserver"),
@@ -22,21 +28,21 @@ async def main():
             password=config.get("password"),
             device_id=config.get("device_id"),
             room_id=config.get("room_id"),
-            openai_api_key=config.get("openai_api_key"),
-            api_endpoint=config.get("api_endpoint"),
-            access_token=config.get("access_token"),
-            bard_token=config.get("bard_token"),
-            jailbreakEnabled=config.get("jailbreakEnabled"),
-            bing_auth_cookie=config.get("bing_auth_cookie"),
-            markdown_formatted=config.get("markdown_formatted"),
-            output_four_images=config.get("output_four_images"),
             import_keys_path=config.get("import_keys_path"),
             import_keys_password=config.get("import_keys_password"),
+            openai_api_key=config.get("openai_api_key"),
+            gpt_api_endpoint=config.get("gpt_api_endpoint"),
+            gpt_model=config.get("gpt_model"),
+            max_tokens=int(config.get("max_tokens")),
+            top_p=float(config.get("top_p")),
+            presence_penalty=float(config.get("presence_penalty")),
+            frequency_penalty=float(config.get("frequency_penalty")),
+            reply_count=int(config.get("reply_count")),
+            system_prompt=config.get("system_prompt"),
+            temperature=float(config.get("temperature")),
             flowise_api_url=config.get("flowise_api_url"),
             flowise_api_key=config.get("flowise_api_key"),
-            pandora_api_endpoint=config.get("pandora_api_endpoint"),
-            pandora_api_model=config.get("pandora_api_model"),
-            temperature=float(config.get("temperature", 0.8)),
+            timeout=float(config.get("timeout")),
         )
         if (
             config.get("import_keys_path")
@@ -51,24 +57,21 @@ async def main():
             password=os.environ.get("PASSWORD"),
             device_id=os.environ.get("DEVICE_ID"),
             room_id=os.environ.get("ROOM_ID"),
-            openai_api_key=os.environ.get("OPENAI_API_KEY"),
-            api_endpoint=os.environ.get("API_ENDPOINT"),
-            access_token=os.environ.get("ACCESS_TOKEN"),
-            bard_token=os.environ.get("BARD_TOKEN"),
-            jailbreakEnabled=os.environ.get("JAILBREAKENABLED", "false").lower()
-            in ("true", "1", "t"),
-            bing_auth_cookie=os.environ.get("BING_AUTH_COOKIE"),
-            markdown_formatted=os.environ.get("MARKDOWN_FORMATTED", "false").lower()
-            in ("true", "1", "t"),
-            output_four_images=os.environ.get("OUTPUT_FOUR_IMAGES", "false").lower()
-            in ("true", "1", "t"),
             import_keys_path=os.environ.get("IMPORT_KEYS_PATH"),
             import_keys_password=os.environ.get("IMPORT_KEYS_PASSWORD"),
+            openai_api_key=os.environ.get("OPENAI_API_KEY"),
+            gpt_api_endpoint=os.environ.get("GPT_API_ENDPOINT"),
+            gpt_model=os.environ.get("GPT_MODEL"),
+            max_tokens=int(os.environ.get("MAX_TOKENS")),
+            top_p=float(os.environ.get("TOP_P")),
+            presence_penalty=float(os.environ.get("PRESENCE_PENALTY")),
+            frequency_penalty=float(os.environ.get("FREQUENCY_PENALTY")),
+            reply_count=int(os.environ.get("REPLY_COUNT")),
+            system_prompt=os.environ.get("SYSTEM_PROMPT"),
+            temperature=float(os.environ.get("TEMPERATURE")),
             flowise_api_url=os.environ.get("FLOWISE_API_URL"),
             flowise_api_key=os.environ.get("FLOWISE_API_KEY"),
-            pandora_api_endpoint=os.environ.get("PANDORA_API_ENDPOINT"),
-            pandora_api_model=os.environ.get("PANDORA_API_MODEL"),
-            temperature=float(os.environ.get("TEMPERATURE", 0.8)),
+            timeout=float(os.environ.get("TIMEOUT")),
         )
         if (
             os.environ.get("IMPORT_KEYS_PATH")
@@ -80,7 +83,20 @@ async def main():
     if need_import_keys:
         logger.info("start import_keys process, this may take a while...")
         await matrix_bot.import_keys()
-    await matrix_bot.sync_forever(timeout=30000, full_state=True)
+
+    sync_task = asyncio.create_task(
+        matrix_bot.sync_forever(timeout=30000, full_state=True)
+    )
+
+    # handle signal interrupt
+    loop = asyncio.get_running_loop()
+    for signame in ("SIGINT", "SIGTERM"):
+        loop.add_signal_handler(
+            getattr(signal, signame),
+            lambda: asyncio.create_task(matrix_bot.close(sync_task)),
+        )
+
+    await sync_task
 
 
 if __name__ == "__main__":

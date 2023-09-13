@@ -44,12 +44,8 @@ pip install -r requirements.txt
 ```
 
 3. Create a new config.json file and complete it with the necessary information:<br>
-   Use password to login(recommended) or provide `access_token` <br>
    If not set:<br>
    `room_id`: bot will work in the room where it is in <br>
-   `openai_api_key`: `!gpt` `!chat` command will not work <br>
-   `api_endpoint`: `!bing` `!chat` command will not work <br>
-   `bing_auth_cookie`: `!pic` command will not work
 
 ```json
 {
@@ -59,7 +55,7 @@ pip install -r requirements.txt
   "device_id": "YOUR_DEVICE_ID",
   "room_id": "YOUR_ROOM_ID",
   "openai_api_key": "YOUR_API_KEY",
-  "api_endpoint": "xxxxxxxxx"
+  "gpt_api_endpoint": "xxxxxxxxx"
 }
 ```
 

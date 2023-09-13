@@ -5,9 +5,9 @@ import re
 import sys
 import traceback
 from typing import Union, Optional
-import uuid
 
-import aiohttp
+import httpx
+
 from nio import (
     AsyncClient,
     AsyncClientConfig,
@@ -28,19 +28,15 @@ from nio import (
 )
 from nio.store.database import SqliteStore
 
-from askgpt import askGPT
-from chatgpt_bing import GPTBOT
-from BingImageGen import ImageGenAsync
 from log import getlogger
 from send_image import send_room_image
 from send_message import send_room_message
-from bard import Bardbot
 from flowise import flowise_query
-from pandora_api import Pandora
+from gptbot import Chatbot
 
 logger = getlogger()
-chatgpt_api_endpoint = "https://api.openai.com/v1/chat/completions"
-base_path = Path(os.path.dirname(__file__)).parent
+DEVICE_NAME = "MatrixChatGPTBot"
+GENERAL_ERROR_MESSAGE = "Something went wrong, please try again or contact admin."
 
 
 class Bot:
@@ -48,77 +44,75 @@ class Bot:
         self,
         homeserver: str,
         user_id: str,
-        device_id: str,
-        api_endpoint: Optional[str] = None,
-        openai_api_key: Union[str, None] = None,
-        temperature: Union[float, None] = None,
-        room_id: Union[str, None] = None,
         password: Union[str, None] = None,
-        access_token: Union[str, None] = None,
-        bard_token: Union[str, None] = None,
-        jailbreakEnabled: Union[bool, None] = True,
-        bing_auth_cookie: Union[str, None] = "",
-        markdown_formatted: Union[bool, None] = False,
-        output_four_images: Union[bool, None] = False,
+        device_id: str = "MatrixChatGPTBot",
+        room_id: Union[str, None] = None,
         import_keys_path: Optional[str] = None,
         import_keys_password: Optional[str] = None,
+        openai_api_key: Union[str, None] = None,
+        gpt_api_endpoint: Optional[str] = None,
+        gpt_model: Optional[str] = None,
+        max_tokens: Optional[int] = None,
+        top_p: Optional[float] = None,
+        presence_penalty: Optional[float] = None,
+        frequency_penalty: Optional[float] = None,
+        reply_count: Optional[int] = None,
+        system_prompt: Optional[str] = None,
+        temperature: Union[float, None] = None,
         flowise_api_url: Optional[str] = None,
         flowise_api_key: Optional[str] = None,
-        pandora_api_endpoint: Optional[str] = None,
-        pandora_api_model: Optional[str] = None,
+        timeout: Union[float, None] = None,
     ):
         if homeserver is None or user_id is None or device_id is None:
             logger.warning("homeserver && user_id && device_id is required")
             sys.exit(1)
 
-        if password is None and access_token is None:
-            logger.warning("password or access_toekn is required")
+        if password is None:
+            logger.warning("password is required")
             sys.exit(1)
 
-        self.homeserver = homeserver
-        self.user_id = user_id
-        self.password = password
-        self.access_token = access_token
-        self.bard_token = bard_token
-        self.device_id = device_id
-        self.room_id = room_id
-        self.openai_api_key = openai_api_key
-        self.bing_auth_cookie = bing_auth_cookie
-        self.api_endpoint = api_endpoint
-        self.import_keys_path = import_keys_path
-        self.import_keys_password = import_keys_password
-        self.flowise_api_url = flowise_api_url
-        self.flowise_api_key = flowise_api_key
-        self.pandora_api_endpoint = pandora_api_endpoint
-        self.temperature = temperature
+        self.homeserver: str = homeserver
+        self.user_id: str = user_id
+        self.password: str = password
+        self.device_id: str = device_id
+        self.room_id: str = room_id
 
-        self.session = aiohttp.ClientSession()
+        self.openai_api_key: str = openai_api_key
+        self.gpt_api_endpoint: str = (
+            gpt_api_endpoint or "https://api.openai.com/v1/chat/completions"
+        )
+        self.gpt_model: str = gpt_model or "gpt-3.5-turbo"
+        self.max_tokens: int = max_tokens or 4000
+        self.top_p: float = top_p or 1.0
+        self.temperature: float = temperature or 0.8
+        self.presence_penalty: float = presence_penalty or 0.0
+        self.frequency_penalty: float = frequency_penalty or 0.0
+        self.reply_count: int = reply_count or 1
+        self.system_prompt: str = (
+            system_prompt
+            or "You are ChatGPT, \
+            a large language model trained by OpenAI. Respond conversationally"
+        )
 
-        if openai_api_key is not None:
-            if not self.openai_api_key.startswith("sk-"):
-                logger.warning("invalid openai api key")
-                sys.exit(1)
+        self.import_keys_path: str = import_keys_path
+        self.import_keys_password: str = import_keys_password
+        self.flowise_api_url: str = flowise_api_url
+        self.flowise_api_key: str = flowise_api_key
 
-        if jailbreakEnabled is None:
-            self.jailbreakEnabled = True
-        else:
-            self.jailbreakEnabled = jailbreakEnabled
+        self.timeout: float = timeout or 120.0
 
-        if markdown_formatted is None:
-            self.markdown_formatted = False
-        else:
-            self.markdown_formatted = markdown_formatted
+        self.base_path = Path(os.path.dirname(__file__)).parent
 
-        if output_four_images is None:
-            self.output_four_images = False
-        else:
-            self.output_four_images = output_four_images
+        self.httpx_client = httpx.AsyncClient(
+            follow_redirects=True,
+            timeout=self.timeout,
+        )
 
         # initialize AsyncClient object
-        self.store_path = base_path
+        self.store_path = self.base_path
         self.config = AsyncClientConfig(
             store=SqliteStore,
-            store_name="db",
+            store_name="sync_db",
             store_sync_tokens=True,
             encryption_enabled=True,
         )
@@ -130,8 +124,21 @@ class Bot:
             store_path=self.store_path,
         )
 
-        if self.access_token is not None:
-            self.client.access_token = self.access_token
+        # initialize Chatbot object
+        self.chatbot = Chatbot(
+            aclient=self.httpx_client,
+            api_key=self.openai_api_key,
+            api_url=self.gpt_api_endpoint,
+            engine=self.gpt_model,
+            timeout=self.timeout,
+            max_tokens=self.max_tokens,
+            top_p=self.top_p,
+            presence_penalty=self.presence_penalty,
+            frequency_penalty=self.frequency_penalty,
+            reply_count=self.reply_count,
+            system_prompt=self.system_prompt,
+            temperature=self.temperature,
+        )
 
         # setup event callbacks
         self.client.add_event_callback(self.message_callback, (RoomMessageText,))
@@ -144,79 +151,20 @@ class Bot:
         # regular expression to match keyword commands
         self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
         self.chat_prog = re.compile(r"^\s*!chat\s*(.+)$")
-        self.bing_prog = re.compile(r"^\s*!bing\s*(.+)$")
-        self.bard_prog = re.compile(r"^\s*!bard\s*(.+)$")
         self.pic_prog = re.compile(r"^\s*!pic\s*(.+)$")
         self.lc_prog = re.compile(r"^\s*!lc\s*(.+)$")
         self.help_prog = re.compile(r"^\s*!help\s*.*$")
-        self.talk_prog = re.compile(r"^\s*!talk\s*(.+)$")
-        self.goon_prog = re.compile(r"^\s*!goon\s*.*$")
         self.new_prog = re.compile(r"^\s*!new\s*(.+)$")
 
-        # initialize askGPT class
-        self.askgpt = askGPT(self.session)
-        # request header for !gpt command
-        self.gptheaders = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.openai_api_key}",
-        }
-
-        # initialize bing and chatgpt
-        if self.api_endpoint is not None:
-            self.gptbot = GPTBOT(self.api_endpoint, self.session)
-        self.chatgpt_data = {}
-        self.bing_data = {}
-
-        # initialize BingImageGenAsync
-        if self.bing_auth_cookie != "":
-            self.imageGen = ImageGenAsync(self.bing_auth_cookie, quiet=True)
-
-        # initialize pandora
-        if pandora_api_endpoint is not None:
-            self.pandora = Pandora(
-                api_endpoint=pandora_api_endpoint, clientSession=self.session
-            )
-            if pandora_api_model is None:
-                self.pandora_api_model = "text-davinci-002-render-sha-mobile"
-            else:
-                self.pandora_api_model = pandora_api_model
-
-        self.pandora_data = {}
-
-        # initialize bard
-        self.bard_data = {}
-
-    def __del__(self):
-        try:
-            loop = asyncio.get_running_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-        loop.run_until_complete(self._close())
-
-    async def _close(self):
-        await self.session.close()
+    async def close(self, task: asyncio.Task) -> None:
+        await self.httpx_client.aclose()
+        await self.client.close()
+        task.cancel()
+        logger.info("Bot closed!")
 
     def chatgpt_session_init(self, sender_id: str) -> None:
         self.chatgpt_data[sender_id] = {
             "first_time": True,
-        }
-
-    def bing_session_init(self, sender_id: str) -> None:
-        self.bing_data[sender_id] = {
-            "first_time": True,
-        }
-
-    def pandora_session_init(self, sender_id: str) -> None:
-        self.pandora_data[sender_id] = {
-            "conversation_id": None,
-            "parent_message_id": str(uuid.uuid4()),
-            "first_time": True,
-        }
-
-    async def bard_session_init(self, sender_id: str) -> None:
-        self.bard_data[sender_id] = {
-            "instance": await Bardbot.create(self.bard_token, 60),
         }
 
     # message_callback RoomMessageText event
@@ -267,7 +215,7 @@ class Bot:
                     except Exception as e:
                         logger.error(e, exc_info=True)
 
-            if self.api_endpoint is not None:
+            if self.gpt_api_endpoint is not None:
                 # chatgpt
                 n = self.chat_prog.match(content_body)
                 if n:
@@ -293,58 +241,6 @@ class Bot:
                             self.client, room_id, reply_message="API_KEY not provided"
                         )
 
-                # bing ai
-                # if self.bing_api_endpoint != "":
-                # bing ai can be used without cookie
-                b = self.bing_prog.match(content_body)
-                if b:
-                    if sender_id not in self.bing_data:
-                        self.bing_session_init(sender_id)
-                    prompt = b.group(1)
-                    # raw_content_body used for construct formatted_body
-                    try:
-                        asyncio.create_task(
-                            self.bing(
-                                room_id,
-                                reply_to_event_id,
-                                prompt,
-                                sender_id,
-                                raw_user_message,
-                            )
-                        )
-                    except Exception as e:
-                        logger.error(e, exc_info=True)
-
-            # Image Generation by Microsoft Bing
-            if self.bing_auth_cookie != "":
-                i = self.pic_prog.match(content_body)
-                if i:
-                    prompt = i.group(1)
-                    try:
-                        asyncio.create_task(self.pic(room_id, prompt))
-                    except Exception as e:
-                        logger.error(e, exc_info=True)
-
-            # Google's Bard
-            if self.bard_token is not None:
-                if sender_id not in self.bard_data:
-                    await self.bard_session_init(sender_id)
-                b = self.bard_prog.match(content_body)
-                if b:
-                    prompt = b.group(1)
-                    try:
-                        asyncio.create_task(
-                            self.bard(
-                                room_id,
-                                reply_to_event_id,
-                                prompt,
-                                sender_id,
-                                raw_user_message,
-                            )
-                        )
-                    except Exception as e:
-                        logger.error(e, exc_info=True)
-
             # lc command
             if self.flowise_api_url is not None:
                 m = self.lc_prog.match(content_body)
@@ -364,46 +260,10 @@ class Bot:
                         await send_room_message(self.client, room_id, reply_message={e})
                         logger.error(e, exc_info=True)
 
-            # pandora
-            if self.pandora_api_endpoint is not None:
-                t = self.talk_prog.match(content_body)
-                if t:
-                    if sender_id not in self.pandora_data:
-                        self.pandora_session_init(sender_id)
-                    prompt = t.group(1)
-                    try:
-                        asyncio.create_task(
-                            self.talk(
-                                room_id,
-                                reply_to_event_id,
-                                prompt,
-                                sender_id,
-                                raw_user_message,
-                            )
-                        )
-                    except Exception as e:
-                        logger.error(e, exc_info=True)
-
-                g = self.goon_prog.match(content_body)
-                if g:
-                    if sender_id not in self.pandora_data:
-                        self.pandora_session_init(sender_id)
-                    try:
-                        asyncio.create_task(
-                            self.goon(
-                                room_id,
-                                reply_to_event_id,
-                                sender_id,
-                                raw_user_message,
-                            )
-                        )
-                    except Exception as e:
-                        logger.error(e, exc_info=True)
-
             # !new command
             n = self.new_prog.match(content_body)
             if n:
-                new_command_kind = n.group(1)
+                new_command = n.group(1)
                 try:
                     asyncio.create_task(
                         self.new(
@@ -411,7 +271,7 @@ class Bot:
                             reply_to_event_id,
                             sender_id,
                             raw_user_message,
-                            new_command_kind,
+                            new_command,
                         )
                     )
                 except Exception as e:
@@ -421,7 +281,11 @@ class Bot:
             h = self.help_prog.match(content_body)
             if h:
                 try:
-                    asyncio.create_task(self.help(room_id))
+                    asyncio.create_task(
+                        self.help(
+                            room_id, reply_to_event_id, sender_id, raw_user_message
+                        )
+                    )
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
@@ -670,7 +534,7 @@ class Bot:
         self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message
     ):
         try:
-            await self.client.room_typing(room_id, timeout=300000)
+            await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
             if (
                 self.chatgpt_data[sender_id]["first_time"]
                 or "conversationId" not in self.chatgpt_data[sender_id]
@@ -705,128 +569,43 @@ class Bot:
                 self.client,
                 room_id,
                 reply_message=content,
-                reply_to_event_id="",
+                reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
                 user_message=raw_user_message,
-                markdown_formatted=self.markdown_formatted,
             )
-        except Exception as e:
-            await send_room_message(self.client, room_id, reply_message=str(e))
+        except Exception:
+            await send_room_message(
+                self.client,
+                room_id,
+                reply_message=GENERAL_ERROR_MESSAGE,
+                reply_to_event_id=reply_to_event_id,
+            )
 
     # !gpt command
     async def gpt(
         self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message
     ) -> None:
         try:
-            # sending typing state
-            await self.client.room_typing(room_id, timeout=30000)
-            # timeout 300s
-            text = await asyncio.wait_for(
-                self.askgpt.oneTimeAsk(
-                    prompt, chatgpt_api_endpoint, self.gptheaders, self.temperature
-                ),
-                timeout=300,
+            # sending typing state, seconds to milliseconds
+            await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
+            responseMessage = await self.chatbot.oneTimeAsk(
+                prompt=prompt,
             )
 
-            text = text.strip()
             await send_room_message(
                 self.client,
                 room_id,
-                reply_message=text,
-                reply_to_event_id="",
+                reply_message=responseMessage.strip(),
+                reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
                 user_message=raw_user_message,
-                markdown_formatted=self.markdown_formatted,
             )
         except Exception:
             await send_room_message(
                 self.client,
                 room_id,
-                reply_message="Error encountered, please try again or contact admin.",
-            )
-
-    # !bing command
-    async def bing(
-        self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message
-    ) -> None:
-        try:
-            # sending typing state
-            await self.client.room_typing(room_id, timeout=300000)
-
-            if (
-                self.bing_data[sender_id]["first_time"]
-                or "conversationId" not in self.bing_data[sender_id]
-            ):
-                self.bing_data[sender_id]["first_time"] = False
-                payload = {
-                    "message": prompt,
-                    "clientOptions": {
-                        "clientToUse": "bing",
-                    },
-                }
-            else:
-                payload = {
-                    "message": prompt,
-                    "clientOptions": {
-                        "clientToUse": "bing",
-                    },
-                    "conversationSignature": self.bing_data[sender_id][
-                        "conversationSignature"
-                    ],
-                    "conversationId": self.bing_data[sender_id]["conversationId"],
-                    "clientId": self.bing_data[sender_id]["clientId"],
-                    "invocationId": self.bing_data[sender_id]["invocationId"],
-                }
-            resp = await self.gptbot.queryBing(payload)
-            content = "".join(
-                [body["text"] for body in resp["details"]["adaptiveCards"][0]["body"]]
-            )
-            self.bing_data[sender_id]["conversationSignature"] = resp[
-                "conversationSignature"
-            ]
-            self.bing_data[sender_id]["conversationId"] = resp["conversationId"]
-            self.bing_data[sender_id]["clientId"] = resp["clientId"]
-            self.bing_data[sender_id]["invocationId"] = resp["invocationId"]
-
-            text = content.strip()
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message=text,
-                reply_to_event_id="",
-                sender_id=sender_id,
-                user_message=raw_user_message,
-                markdown_formatted=self.markdown_formatted,
-            )
-        except Exception as e:
-            await send_room_message(self.client, room_id, reply_message=str(e))
-
-    # !bard command
-    async def bard(
-        self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message
-    ) -> None:
-        try:
-            # sending typing state
-            await self.client.room_typing(room_id)
-            response = await self.bard_data[sender_id]["instance"].ask(prompt)
-
-            content = str(response["content"]).strip()
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message=content,
-                reply_to_event_id="",
-                sender_id=sender_id,
-                user_message=raw_user_message,
-                markdown_formatted=self.markdown_formatted,
-            )
-        except TimeoutError:
-            await send_room_message(self.client, room_id, reply_message="TimeoutError")
-        except Exception:
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message="Error calling Bard API, please contact admin.",
+                reply_message=GENERAL_ERROR_MESSAGE,
+                reply_to_event_id=reply_to_event_id,
             )
 
     # !lc command
@@ -835,119 +614,31 @@ class Bot:
     ) -> None:
         try:
             # sending typing state
-            await self.client.room_typing(room_id)
+            await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
             if self.flowise_api_key is not None:
                 headers = {"Authorization": f"Bearer {self.flowise_api_key}"}
-                response = await flowise_query(
-                    self.flowise_api_url, prompt, self.session, headers
+                responseMessage = await flowise_query(
+                    self.flowise_api_url, prompt, self.httpx_client, headers
                 )
             else:
-                response = await flowise_query(
-                    self.flowise_api_url, prompt, self.session
+                responseMessage = await flowise_query(
+                    self.flowise_api_url, prompt, self.httpx_client
                 )
             await send_room_message(
                 self.client,
                 room_id,
-                reply_message=response,
-                reply_to_event_id="",
+                reply_message=responseMessage.strip(),
+                reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
                 user_message=raw_user_message,
-                markdown_formatted=self.markdown_formatted,
             )
         except Exception:
             await send_room_message(
                 self.client,
                 room_id,
-                reply_message="Error calling flowise API, please contact admin.",
+                reply_message=GENERAL_ERROR_MESSAGE,
+                reply_to_event_id=reply_to_event_id,
             )
-
-    # !talk command
-    async def talk(
-        self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message
-    ) -> None:
-        try:
-            if self.pandora_data[sender_id]["conversation_id"] is not None:
-                data = {
-                    "prompt": prompt,
-                    "model": self.pandora_api_model,
-                    "parent_message_id": self.pandora_data[sender_id][
-                        "parent_message_id"
-                    ],
-                    "conversation_id": self.pandora_data[sender_id]["conversation_id"],
-                    "stream": False,
-                }
-            else:
-                data = {
-                    "prompt": prompt,
-                    "model": self.pandora_api_model,
-                    "parent_message_id": self.pandora_data[sender_id][
-                        "parent_message_id"
-                    ],
-                    "stream": False,
-                }
-            # sending typing state
-            await self.client.room_typing(room_id)
-            response = await self.pandora.talk(data)
-            self.pandora_data[sender_id]["conversation_id"] = response[
-                "conversation_id"
-            ]
-            self.pandora_data[sender_id]["parent_message_id"] = response["message"][
-                "id"
-            ]
-            content = response["message"]["content"]["parts"][0]
-            if self.pandora_data[sender_id]["first_time"]:
-                self.pandora_data[sender_id]["first_time"] = False
-                data = {
-                    "model": self.pandora_api_model,
-                    "message_id": self.pandora_data[sender_id]["parent_message_id"],
-                }
-                await self.pandora.gen_title(
-                    data, self.pandora_data[sender_id]["conversation_id"]
-                )
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message=content,
-                reply_to_event_id="",
-                sender_id=sender_id,
-                user_message=raw_user_message,
-                markdown_formatted=self.markdown_formatted,
-            )
-        except Exception as e:
-            await send_room_message(self.client, room_id, reply_message=str(e))
-
-    # !goon command
-    async def goon(
-        self, room_id, reply_to_event_id, sender_id, raw_user_message
-    ) -> None:
-        try:
-            # sending typing state
-            await self.client.room_typing(room_id)
-            data = {
-                "model": self.pandora_api_model,
-                "parent_message_id": self.pandora_data[sender_id]["parent_message_id"],
-                "conversation_id": self.pandora_data[sender_id]["conversation_id"],
-                "stream": False,
-            }
-            response = await self.pandora.goon(data)
-            self.pandora_data[sender_id]["conversation_id"] = response[
-                "conversation_id"
-            ]
-            self.pandora_data[sender_id]["parent_message_id"] = response["message"][
-                "id"
-            ]
-            content = response["message"]["content"]["parts"][0]
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message=content,
-                reply_to_event_id="",
-                sender_id=sender_id,
-                user_message=raw_user_message,
-                markdown_formatted=self.markdown_formatted,
-            )
-        except Exception as e:
-            await send_room_message(self.client, room_id, reply_message=str(e))
 
     # !new command
     async def new(
@@ -956,28 +647,13 @@ class Bot:
         reply_to_event_id,
         sender_id,
         raw_user_message,
-        new_command_kind,
+        new_command,
     ) -> None:
         try:
-            if "talk" in new_command_kind:
-                self.pandora_session_init(sender_id)
-                content = (
-                    "New conversation created, please use !talk to start chatting!"
-                )
-            elif "chat" in new_command_kind:
+            if "chat" in new_command:
                 self.chatgpt_session_init(sender_id)
                 content = (
                     "New conversation created, please use !chat to start chatting!"
-                )
-            elif "bing" in new_command_kind:
-                self.bing_session_init(sender_id)
-                content = (
-                    "New conversation created, please use !bing to start chatting!"
-                )
-            elif "bard" in new_command_kind:
-                await self.bard_session_init(sender_id)
-                content = (
-                    "New conversation created, please use !bard to start chatting!"
                 )
             else:
                 content = "Unkown keyword, please use !help to see the usage!"
@@ -986,32 +662,41 @@ class Bot:
                 self.client,
                 room_id,
                 reply_message=content,
-                reply_to_event_id="",
+                reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
                 user_message=raw_user_message,
-                markdown_formatted=self.markdown_formatted,
             )
-        except Exception as e:
-            await send_room_message(self.client, room_id, reply_message=str(e))
+        except Exception:
+            await send_room_message(
+                self.client,
+                room_id,
+                reply_message=GENERAL_ERROR_MESSAGE,
+                reply_to_event_id=reply_to_event_id,
+            )
 
     # !pic command
-    async def pic(self, room_id, prompt):
+    async def pic(self, room_id, prompt, replay_to_event_id):
         try:
-            await self.client.room_typing(room_id, timeout=300000)
+            await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
             # generate image
             links = await self.imageGen.get_images(prompt)
             image_path_list = await self.imageGen.save_images(
-                links, base_path / "images", self.output_four_images
+                links, self.base_path / "images", self.output_four_images
             )
             # send image
             for image_path in image_path_list:
                 await send_room_image(self.client, room_id, image_path)
             await self.client.room_typing(room_id, typing_state=False)
         except Exception as e:
-            await send_room_message(self.client, room_id, reply_message=str(e))
+            await send_room_message(
+                self.client,
+                room_id,
+                reply_message=str(e),
+                reply_to_event_id=replay_to_event_id,
+            )
 
     # !help command
-    async def help(self, room_id):
+    async def help(self, room_id, reply_to_event_id, sender_id, user_message):
         help_info = (
             "!gpt [prompt], generate a one time response without context conversation\n"
             + "!chat [prompt], chat with context conversation\n"
@@ -1025,21 +710,24 @@ class Bot:
             + "!help, help message"
         )  # noqa: E501
 
-        await send_room_message(self.client, room_id, reply_message=help_info)
+        await send_room_message(
+            self.client,
+            room_id,
+            reply_message=help_info,
+            sender_id=sender_id,
+            user_message=user_message,
+            reply_to_event_id=reply_to_event_id,
+        )
 
     # bot login
     async def login(self) -> None:
-        if self.access_token is not None:
-            logger.info("Login via access_token")
-        else:
-            logger.info("Login via password")
-            try:
-                resp = await self.client.login(password=self.password)
-                if not isinstance(resp, LoginResponse):
-                    logger.error("Login Failed")
-                    sys.exit(1)
-            except Exception as e:
-                logger.error(f"Error: {e}", exc_info=True)
+        resp = await self.client.login(password=self.password, device_name=DEVICE_NAME)
+        if not isinstance(resp, LoginResponse):
+            logger.error("Login Failed")
+            await self.httpx_client.aclose()
+            await self.client.close()
+            sys.exit(1)
+        logger.info("Success login via password")
 
     # import keys
     async def import_keys(self):

@@ -1,5 +1,3 @@
-import re
-
 import markdown
 from log import getlogger
 from nio import AsyncClient
@@ -14,32 +12,19 @@ async def send_room_message(
     sender_id: str = "",
     user_message: str = "",
     reply_to_event_id: str = "",
-    markdown_formatted: bool = False,
 ) -> None:
-    NORMAL_BODY = content = {
-        "msgtype": "m.text",
-        "body": reply_message,
-    }
     if reply_to_event_id == "":
-        if markdown_formatted:
-            # only format message contains multiline codes, *, |
-            if re.search(r"```|\*|\|", reply_message) is not None:
-                content = {
-                    "msgtype": "m.text",
-                    "body": reply_message,
-                    "format": "org.matrix.custom.html",
-                    "formatted_body": markdown.markdown(
-                        reply_message,
-                        extensions=["nl2br", "tables", "fenced_code"],
-                    ),
-                }
-            else:
-                content = NORMAL_BODY
-
-        else:
-            content = NORMAL_BODY
+        content = {
+            "msgtype": "m.text",
+            "body": reply_message,
+            "format": "org.matrix.custom.html",
+            "formatted_body": markdown.markdown(
+                reply_message,
+                extensions=["nl2br", "tables", "fenced_code"],
+            ),
+        }
     else:
-        body = r"> <" + sender_id + r"> " + user_message + r"\n\n" + reply_message
+        body = "> <" + sender_id + "> " + user_message + "\n\n" + reply_message
         format = r"org.matrix.custom.html"
         formatted_body = (
             r'<mx-reply><blockquote><a href="https://matrix.to/#/'
@@ -53,7 +38,10 @@ async def send_room_message(
             + r"</a><br>"
             + user_message
             + r"</blockquote></mx-reply>"
-            + reply_message
+            + markdown.markdown(
+                reply_message,
+                extensions=["nl2br", "tables", "fenced_code"],
+            )
         )
 
         content = {

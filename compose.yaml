@@ -11,32 +11,13 @@ services:
     volumes:
       # use env file or config.json
       # - ./config.json:/app/config.json
-      # use touch to create an empty file db, for persist database only
-      - ./db:/app/db
+      # use touch to create empty db file, for persist database only
+      - ./sync_db:/app/sync_db
+      - ./manage_db:/app/manage_db
       # import_keys path
       # - ./element-keys.txt:/app/element-keys.txt
     networks:
       - matrix_network
-  api:
-    # ChatGPT and Bing API
-    image: hibobmaster/node-chatgpt-api:latest
-    container_name: node-chatgpt-api
-    restart: unless-stopped
-    volumes:
-      - ./settings.js:/app/settings.js
-    networks:
-      - matrix_network
-
-  # pandora:
-  #   # ChatGPT Web
-  #   image: pengzhile/pandora
-  #   container_name: pandora
-  #   restart: unless-stopped
-  #   environment:
-  #     - PANDORA_ACCESS_TOKEN=xxxxxxxxxxxxxx
-  #     - PANDORA_SERVER=0.0.0.0:8008
-  #   networks:
-  #     - matrix_network
 
 networks:
   matrix_network:

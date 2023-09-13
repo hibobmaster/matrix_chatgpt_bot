@@ -1,0 +1,20 @@
+HOMESERVER="https://matrix-client.matrix.org"
+USER_ID="@lullap:xxxxxxxxxxxxx.xxx"
+PASSWORD="xxxxxxxxxxxxxxx"
+DEVICE_ID="xxxxxxxxxxxxxx"
+ROOM_ID="!FYCmBSkCRUXXXXXXXXX:matrix.XXX.XXX"
+IMPORT_KEYS_PATH="element-keys.txt"
+IMPORT_KEYS_PASSWORD="xxxxxxxxxxxx"
+OPENAI_API_KEY="xxxxxxxxxxxxxxxxx"
+GPT_API_ENDPOINT="https://api.openai.com/v1/chat/completions"
+GPT_MODEL="gpt-3.5-turbo"
+MAX_TOKENS=4000
+TOP_P=1.0
+PRESENCE_PENALTY=0.0
+FREQUENCY_PENALTY=0.0
+REPLY_COUNT=1
+SYSTEM_PROMPT="You are ChatGPT,  a large language model trained by OpenAI. Respond conversationally"
+TEMPERATURE=0.8
+FLOWISE_API_URL="http://flowise:3000/api/v1/prediction/6deb3c89-45bf-4ac4-a0b0-b2d5ef249d21"
+FLOWISE_API_KEY="U3pe0bbVDWOyoJtsDzFJjRvHKTP3FRjODwuM78exC3A="
+TIMEOUT=120.0
