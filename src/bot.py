@@ -564,10 +564,11 @@ class Bot:
                 sender_id=sender_id,
                 user_message=raw_user_message,
             )
-        except Exception:
+        except Exception as e:
             await self.send_general_error_message(
                 room_id, reply_to_event_id, sender_id, raw_user_message
             )
+            logger.error(e)
 
     # !lc command
     async def lc(

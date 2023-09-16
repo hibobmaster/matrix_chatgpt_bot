@@ -4,8 +4,7 @@ A simple wrapper for the official ChatGPT API
 """
 import json
 from typing import AsyncGenerator
-from tenacity import retry, stop_after_attempt, wait_random_exponential
-
+from tenacity import retry, wait_random_exponential, stop_after_attempt
 import httpx
 import tiktoken
 
@@ -267,11 +266,16 @@ class Chatbot:
         model: str = None,
         **kwargs,
     ) -> str:
-        async with self.aclient.post(
+        response = await self.aclient.post(
             url=self.api_url,
             json={
                 "model": model or self.engine,
-                "messages": prompt,
+                "messages": [
+                    {
+                        "role": role,
+                        "content": prompt,
+                    }
+                ],
                 # kwargs
                 "temperature": kwargs.get("temperature", self.temperature),
                 "top_p": kwargs.get("top_p", self.top_p),
@@ -287,6 +291,6 @@ class Chatbot:
             },
             headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
             timeout=kwargs.get("timeout", self.timeout),
-        ) as response:
-            resp = await response.read()
-            return json.loads(resp)["choices"][0]["message"]["content"]
+        )
+        resp = response.json()
+        return resp["choices"][0]["message"]["content"]
