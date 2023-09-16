@@ -162,11 +162,6 @@ class Bot:
         task.cancel()
         logger.info("Bot closed!")
 
-    def chatgpt_session_init(self, sender_id: str) -> None:
-        self.chatgpt_data[sender_id] = {
-            "first_time": True,
-        }
-
     # message_callback RoomMessageText event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
         if self.room_id is None:
@@ -219,8 +214,6 @@ class Bot:
                 # chatgpt
                 n = self.chat_prog.match(content_body)
                 if n:
-                    if sender_id not in self.chatgpt_data:
-                        self.chatgpt_session_init(sender_id)
                     prompt = n.group(1)
                     if self.openai_api_key is not None:
                         try:
@@ -535,36 +528,10 @@ class Bot:
     ):
         try:
             await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
-            if (
-                self.chatgpt_data[sender_id]["first_time"]
-                or "conversationId" not in self.chatgpt_data[sender_id]
-            ):
-                self.chatgpt_data[sender_id]["first_time"] = False
-                payload = {
-                    "message": prompt,
-                }
-            else:
-                payload = {
-                    "message": prompt,
-                    "conversationId": self.chatgpt_data[sender_id]["conversationId"],
-                    "parentMessageId": self.chatgpt_data[sender_id]["parentMessageId"],
-                }
-            payload.update(
-                {
-                    "clientOptions": {
-                        "clientToUse": "chatgpt",
-                        "openaiApiKey": self.openai_api_key,
-                        "modelOptions": {
-                            "temperature": self.temperature,
-                        },
-                    }
-                }
+            content = await self.chatbot.ask_async(
+                prompt=prompt,
+                convo_id=sender_id,
             )
-            resp = await self.gptbot.queryChatGPT(payload)
-            content = resp["response"]
-            self.chatgpt_data[sender_id]["conversationId"] = resp["conversationId"]
-            self.chatgpt_data[sender_id]["parentMessageId"] = resp["messageId"]
-
             await send_room_message(
                 self.client,
                 room_id,
@@ -574,11 +541,8 @@ class Bot:
                 user_message=raw_user_message,
             )
         except Exception:
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message=GENERAL_ERROR_MESSAGE,
-                reply_to_event_id=reply_to_event_id,
+            await self.send_general_error_message(
+                room_id, reply_to_event_id, sender_id, raw_user_message
             )
 
     # !gpt command
@@ -601,11 +565,8 @@ class Bot:
                 user_message=raw_user_message,
             )
         except Exception:
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message=GENERAL_ERROR_MESSAGE,
-                reply_to_event_id=reply_to_event_id,
+            await self.send_general_error_message(
+                room_id, reply_to_event_id, sender_id, raw_user_message
             )
 
     # !lc command
@@ -633,11 +594,8 @@ class Bot:
                 user_message=raw_user_message,
             )
         except Exception:
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message=GENERAL_ERROR_MESSAGE,
-                reply_to_event_id=reply_to_event_id,
+            await self.send_general_error_message(
+                room_id, reply_to_event_id, sender_id, raw_user_message
             )
 
     # !new command
@@ -651,12 +609,12 @@ class Bot:
     ) -> None:
         try:
             if "chat" in new_command:
-                self.chatgpt_session_init(sender_id)
+                self.chatbot.reset(convo_id=sender_id)
                 content = (
                     "New conversation created, please use !chat to start chatting!"
                 )
             else:
-                content = "Unkown keyword, please use !help to see the usage!"
+                content = "Unkown keyword, please use !help to get available commands"
 
             await send_room_message(
                 self.client,
@@ -667,11 +625,8 @@ class Bot:
                 user_message=raw_user_message,
             )
         except Exception:
-            await send_room_message(
-                self.client,
-                room_id,
-                reply_message=GENERAL_ERROR_MESSAGE,
-                reply_to_event_id=reply_to_event_id,
+            await self.send_general_error_message(
+                room_id, reply_to_event_id, sender_id, raw_user_message
             )
 
     # !pic command
@@ -700,12 +655,8 @@ class Bot:
         help_info = (
             "!gpt [prompt], generate a one time response without context conversation\n"
             + "!chat [prompt], chat with context conversation\n"
-            + "!bing [prompt], chat with context conversation powered by Bing AI\n"
-            + "!bard [prompt], chat with Google's Bard\n"
             + "!pic [prompt], Image generation by Microsoft Bing\n"
-            + "!talk [content], talk using chatgpt web (pandora)\n"
-            + "!goon, continue the incomplete conversation (pandora)\n"
-            + "!new + [chat,bing,talk,bard], start a new conversation \n"
+            + "!new + chat, start a new conversation \n"
             + "!lc [prompt], chat using langchain api\n"
             + "!help, help message"
         )  # noqa: E501
@@ -717,6 +668,19 @@ class Bot:
             sender_id=sender_id,
             user_message=user_message,
             reply_to_event_id=reply_to_event_id,
+        )
+
+    # send general error message
+    async def send_general_error_message(
+        self, room_id, reply_to_event_id, sender_id, user_message
+    ):
+        await send_room_message(
+            self.client,
+            room_id,
+            reply_message=GENERAL_ERROR_MESSAGE,
+            reply_to_event_id=reply_to_event_id,
+            sender_id=sender_id,
+            user_message=user_message,
         )
 
     # bot login
