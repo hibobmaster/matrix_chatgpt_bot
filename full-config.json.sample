@@ -16,8 +16,6 @@
     "reply_count": 1,
     "temperature": 0.8,
     "system_prompt": "You are ChatGPT,  a large language model trained by OpenAI. Respond conversationally",
-    "flowise_api_url": "http://flowise:3000/api/v1/prediction/6deb3c89-45bf-4ac4-a0b0-b2d5ef249d21",
-    "flowise_api_key": "U3pe0bbVDWOyoJtsDzFJjRvHKTP3FRjODwuM78exC3A=",
     "lc_admin": ["@admin:xxxxx.org"],
     "image_generation_endpoint": "http://localai:8080/v1/images/generations",
     "image_generation_backend": "openai",

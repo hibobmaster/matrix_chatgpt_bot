@@ -1,6 +1,6 @@
 ## Introduction
 
-This is a simple Matrix bot that support using OpenAI API, Langchain to generate responses from user inputs. The bot responds to these commands: `!gpt`, `!chat` and `!pic` and `!talk`, `!goon`, `!new` and `!lc` and `!help` depending on the first word of the prompt.
+This is a simple Matrix bot that support using OpenAI API, Langchain to generate responses from user inputs. The bot responds to these commands: `!gpt`, `!chat` and `!pic` and `!new` and `!lc` and `!help` depending on the first word of the prompt.
 ![ChatGPT](https://i.imgur.com/kK4rnPf.jpeg)
 
 ## Feature
@@ -92,8 +92,14 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 ```
 !pic A bridal bouquet made of succulents
 ```
+- `!agent` display or set langchain agent
+```
+!agent list
+!agent use {agent_name}
+```
 - `!new + {chat}` Start a new converstaion
 
+LangChain(flowise) admin: https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/Langchain-(flowise)
 
 ## Image Generation
 ![demo1](https://i.imgur.com/voeomsF.jpg)

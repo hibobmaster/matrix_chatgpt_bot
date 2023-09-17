@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.0(unreleased)
+## 1.3.0
 - remove support for bing,bard,pandora
 - refactor chat logic, add self host model support
 - support new image generation endpoint
