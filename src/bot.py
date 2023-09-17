@@ -116,6 +116,8 @@ class Bot:
 
         self.base_path = Path(os.path.dirname(__file__)).parent
 
+        if lc_admin is not None:
+            lc_admin = list(filter(None, lc_admin.split(",")))
         self.lc_admin = lc_admin
         self.lc_cache = {}
         if self.lc_admin is not None:
@@ -1372,7 +1374,7 @@ class Bot:
         help_info = (
             "!gpt [prompt], generate a one time response without context conversation\n"
             + "!chat [prompt], chat with context conversation\n"
-            + "!pic [prompt], Image generation by Microsoft Bing\n"
+            + "!pic [prompt], Image generation by DALL·E or LocalAI or stable-diffusion-webui\n"  # noqa: E501
             + "!new + chat, start a new conversation \n"
             + "!lc [prompt], chat using langchain api\n"
             + "!help, help message"
