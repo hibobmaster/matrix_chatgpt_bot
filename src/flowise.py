@@ -24,7 +24,7 @@ async def flowise_query(
         )
     else:
         response = await session.post(api_url, json={"question": prompt})
-    return await response.text()
+    return response.text
 
 
 async def test():

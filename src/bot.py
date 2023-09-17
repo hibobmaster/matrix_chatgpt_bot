@@ -33,12 +33,14 @@ from log import getlogger
 from send_image import send_room_image
 from send_message import send_room_message
 from flowise import flowise_query
+from lc_manager import LCManager
 from gptbot import Chatbot
 import imagegen
 
 logger = getlogger()
 DEVICE_NAME = "MatrixChatGPTBot"
 GENERAL_ERROR_MESSAGE = "Something went wrong, please try again or contact admin."
+INVALID_NUMBER_OF_PARAMETERS_MESSAGE = "Invalid number of parameters"
 
 
 class Bot:
@@ -61,8 +63,7 @@ class Bot:
         reply_count: Optional[int] = None,
         system_prompt: Optional[str] = None,
         temperature: Union[float, None] = None,
-        flowise_api_url: Optional[str] = None,
-        flowise_api_key: Optional[str] = None,
+        lc_admin: Optional[list[str]] = None,
         image_generation_endpoint: Optional[str] = None,
         image_generation_backend: Optional[str] = None,
         timeout: Union[float, None] = None,
@@ -108,14 +109,18 @@ class Bot:
 
         self.import_keys_path: str = import_keys_path
         self.import_keys_password: str = import_keys_password
-        self.flowise_api_url: str = flowise_api_url
-        self.flowise_api_key: str = flowise_api_key
         self.image_generation_endpoint: str = image_generation_endpoint
         self.image_generation_backend: str = image_generation_backend
 
         self.timeout: float = timeout or 120.0
 
         self.base_path = Path(os.path.dirname(__file__)).parent
+
+        self.lc_admin = lc_admin
+        self.lc_cache = {}
+        if self.lc_admin is not None:
+            # intialize LCManager
+            self.lc_manager = LCManager()
 
         if not os.path.exists(self.base_path / "images"):
             os.mkdir(self.base_path / "images")
@@ -166,15 +171,20 @@ class Bot:
         )
 
         # regular expression to match keyword commands
-        self.gpt_prog = re.compile(r"^\s*!gpt\s*(.+)$")
-        self.chat_prog = re.compile(r"^\s*!chat\s*(.+)$")
-        self.pic_prog = re.compile(r"^\s*!pic\s*(.+)$")
-        self.lc_prog = re.compile(r"^\s*!lc\s*(.+)$")
+        self.gpt_prog = re.compile(r"^\s*!gpt\s+(.+)$")
+        self.chat_prog = re.compile(r"^\s*!chat\s+(.+)$")
+        self.pic_prog = re.compile(r"^\s*!pic\s+(.+)$")
+        self.lc_prog = re.compile(r"^\s*!lc\s+(.+)$")
+        self.lcadmin_prog = re.compile(r"^\s*!lcadmin\s+(.+)$")
+        self.agent_prog = re.compile(r"^\s*!agent\s+(.+)$")
         self.help_prog = re.compile(r"^\s*!help\s*.*$")
-        self.new_prog = re.compile(r"^\s*!new\s*(.+)$")
+        self.new_prog = re.compile(r"^\s*!new\s+(.+)$")
 
     async def close(self, task: asyncio.Task) -> None:
         await self.httpx_client.aclose()
+        if self.lc_admin is not None:
+            self.lc_manager.c.close()
+            self.lc_manager.conn.close()
         await self.client.close()
         task.cancel()
         logger.info("Bot closed!")
@@ -252,23 +262,662 @@ class Bot:
                         )
 
             # lc command
-            if self.flowise_api_url is not None:
+            if self.lc_admin is not None:
+                perm_flags = 0
                 m = self.lc_prog.match(content_body)
                 if m:
+                    try:
+                        # room_level permission
+                        if room_id not in self.lc_cache:
+                            # get info from db
+                            datas = self.lc_manager.get_specific_by_username(room_id)
+                            if len(datas) != 0:
+                                # tuple
+                                agent = self.lc_manager.get_command_agent(room_id)[0][0]
+                                api_url = self.lc_manager.get_command_api_url(
+                                    room_id, agent
+                                )[0][0]
+                                api_key = self.lc_manager.get_command_api_key(
+                                    room_id, agent
+                                )[0][0]
+                                permission = self.lc_manager.get_command_permission(
+                                    room_id, agent
+                                )[0][0]
+                                self.lc_cache[room_id] = {
+                                    "agent": agent,
+                                    "api_url": api_url,
+                                    "api_key": api_key,
+                                    "permission": permission,
+                                }
+                                perm_flags = permission
+                        else:
+                            # get info from cache
+                            agent = self.lc_cache[room_id]["agent"]
+                            api_url = self.lc_cache[room_id]["api_url"]
+                            api_key = self.lc_cache[room_id]["api_key"]
+                            perm_flags = self.lc_cache[room_id]["permission"]
+
+                        if perm_flags == 0:
+                            # check user_level permission
+                            if sender_id not in self.lc_cache:
+                                # get info from db
+                                datas = self.lc_manager.get_specific_by_username(
+                                    sender_id
+                                )
+                                if len(datas) != 0:
+                                    # tuple
+                                    agent = self.lc_manager.get_command_agent(
+                                        sender_id
+                                    )[0][0]
+                                    # tuple
+                                    api_url = self.lc_manager.get_command_api_url(
+                                        sender_id, agent
+                                    )[0][0]
+                                    # tuple
+                                    api_key = self.lc_manager.get_command_api_key(
+                                        sender_id, agent
+                                    )[0][0]
+                                    # tuple
+                                    permission = self.lc_manager.get_command_permission(
+                                        sender_id, agent
+                                    )[0][0]
+                                    self.lc_cache[sender_id] = {
+                                        "agent": agent,
+                                        "api_url": api_url,
+                                        "api_key": api_key,
+                                        "permission": permission,
+                                    }
+                                    perm_flags = permission
+                            else:
+                                # get info from cache
+                                agent = self.lc_cache[sender_id]["agent"]
+                                api_url = self.lc_cache[sender_id]["api_url"]
+                                api_key = self.lc_cache[sender_id]["api_key"]
+                                perm_flags = self.lc_cache[sender_id]["permission"]
+                    except Exception as e:
+                        logger.error(e, exc_info=True)
+
                     prompt = m.group(1)
                     try:
-                        asyncio.create_task(
-                            self.lc(
-                                room_id,
-                                reply_to_event_id,
-                                prompt,
-                                sender_id,
-                                raw_user_message,
+                        if perm_flags == 1:
+                            # have privilege to use langchain
+                            asyncio.create_task(
+                                self.lc(
+                                    room_id,
+                                    reply_to_event_id,
+                                    prompt,
+                                    sender_id,
+                                    raw_user_message,
+                                    api_url,
+                                    api_key,
+                                )
                             )
-                        )
+                        else:
+                            # no privilege to use langchain
+                            await send_room_message(
+                                self.client,
+                                room_id,
+                                reply_message="You don't have permission to use langchain",  # noqa: E501
+                                sender_id=sender_id,
+                                user_message=raw_user_message,
+                                reply_to_event_id=reply_to_event_id,
+                            )
                     except Exception as e:
                         await send_room_message(self.client, room_id, reply_message={e})
                         logger.error(e, exc_info=True)
+
+            # lc_admin command
+            """
+            username: user_id or room_id
+            - user_id: @xxxxx:xxxxx.xxxxx
+            - room_id: !xxxxx:xxxxx.xxxxx
+
+            agent_name: the name of the agent
+            api_url: api_endpoint
+            api_key: api_key (Optional)
+            permission: integer (can: 1, cannot: 0)
+
+            {1} update api_url
+            {2} update api_key
+            {3} update permission
+            {4} update agent name
+
+            # add langchain endpoint
+            !lcadmin add {username} {agent_name} {api_url} {api_key *Optional} {permission}
+
+            # update api_url
+            !lcadmin update {1} {username} {agent} {api_url}
+            # update api_key
+            !lcadmin update {2} {username} {agent} {api_key}
+            # update permission
+            !lcadmin update {3} {username} {agent} {permission}
+            # update agent name
+            !lcadmin update {4} {username} {agent} {api_url}
+
+            # delete agent
+            !lcadmin delete {username} {agent}
+
+            # delete all agent
+            !lcadmin delete {username}
+
+            # list agent
+            !lcadmin list {username}
+
+            # list all agents
+            !lcadmin list
+            """  # noqa: E501
+            if self.lc_admin is not None:
+                q = self.lcadmin_prog.match(content_body)
+                if q:
+                    if sender_id in self.lc_admin:
+                        try:
+                            command_with_params = q.group(1).strip()
+                            split_items = re.sub(
+                                "\s{1,}", " ", command_with_params
+                            ).split(" ")
+                            command = split_items[0].strip()
+                            params = split_items[1:]
+                            if command == "add":
+                                if not 4 <= len(params) <= 5:
+                                    logger.warning("Invalid number of parameters")
+                                    await self.send_invalid_number_of_parameters_message(  # noqa: E501
+                                        room_id,
+                                        reply_to_event_id,
+                                        sender_id,
+                                        raw_user_message,
+                                    )
+                                else:
+                                    try:
+                                        if len(params) == 4:
+                                            (
+                                                username,
+                                                agent,
+                                                api_url,
+                                                permission,
+                                            ) = params
+                                            self.lc_manager.add_command(
+                                                username,
+                                                agent,
+                                                api_url,
+                                                api_key=None,
+                                                permission=int(permission),
+                                            )
+                                            logger.info(
+                                                f"\n \
+                                                add {agent}:\n \
+                                                username: {username}\n \
+                                                api_url: {api_url}\n \
+                                                permission: {permission} \
+                                                "
+                                            )
+                                            await send_room_message(
+                                                self.client,
+                                                room_id,
+                                                reply_message="add successfully!",
+                                                sender_id=sender_id,
+                                                user_message=raw_user_message,
+                                                reply_to_event_id="",
+                                            )
+                                        elif len(params) == 5:
+                                            (
+                                                username,
+                                                agent,
+                                                api_url,
+                                                api_key,
+                                                permission,
+                                            ) = params
+                                            self.lc_manager.add_command(
+                                                username,
+                                                agent,
+                                                api_url,
+                                                api_key,
+                                                int(permission),
+                                            )
+                                            logger.info(
+                                                f"\n \
+                                                        add {agent}:\n \
+                                                        username: {username}\n \
+                                                        api_url: {api_url}\n \
+                                                        permission: {permission}\n \
+                                                        api_key: {api_key} \
+                                                        "
+                                            )
+                                            await send_room_message(
+                                                self.client,
+                                                room_id,
+                                                reply_message="add successfully!",
+                                                sender_id=sender_id,
+                                                user_message=raw_user_message,
+                                                reply_to_event_id="",
+                                            )
+                                    except Exception as e:
+                                        logger.error(e, exc_info=True)
+                                        await send_room_message(
+                                            self.client,
+                                            room_id,
+                                            reply_message=str(e),
+                                        )
+                            elif command == "update":
+                                if not len(params) == 4:
+                                    logger.warning("Invalid number of parameters")
+                                    await self.send_invalid_number_of_parameters_message(  # noqa: E501
+                                        room_id,
+                                        reply_to_event_id,
+                                        sender_id,
+                                        raw_user_message,
+                                    )
+                                else:
+                                    # {1} update api_url
+                                    if params[0].strip() == "1":
+                                        username, agent, api_url = params[1:]
+                                        self.lc_manager.update_command_api_url(
+                                            username, agent, api_url
+                                        )
+                                        logger.info(
+                                            f"{username}-{agent}-{api_url} updated! "
+                                            + str(
+                                                self.lc_manager.get_specific_by_agent(
+                                                    agent
+                                                )
+                                            ),
+                                        )
+                                        await send_room_message(
+                                            self.client,
+                                            room_id,
+                                            reply_message=f"{username}-{agent}-{api_url} updated! "  # noqa: E501
+                                            + str(
+                                                self.lc_manager.get_specific_by_agent(
+                                                    agent
+                                                )
+                                            ),
+                                            sender_id=sender_id,
+                                            user_message=raw_user_message,
+                                            reply_to_event_id="",
+                                        )
+                                        # update cache
+                                        if sender_id not in self.lc_cache:
+                                            agent = agent
+                                            api_url = api_url
+                                            api_key = (
+                                                self.lc_manager.get_command_api_key(
+                                                    username, agent
+                                                )[0][0]
+                                            )
+
+                                            permission = (
+                                                self.lc_manager.get_command_permission(
+                                                    username, agent
+                                                )[0][0]
+                                            )
+                                            self.lc_cache[sender_id] = {
+                                                "agent": agent,
+                                                "api_url": api_url,
+                                                "api_key": api_key,
+                                                "permission": permission,
+                                            }
+                                        else:
+                                            if (
+                                                self.lc_cache[sender_id]["agent"]
+                                                == agent
+                                            ):
+                                                self.lc_cache[sender_id][
+                                                    "api_url"
+                                                ] = api_url
+
+                                    # {2} update api_key
+                                    elif params[0].strip() == "2":
+                                        username, agent, api_key = params[1:]
+                                        self.lc_manager.update_command_api_key(
+                                            username, agent, api_key
+                                        )
+                                        logger.info(
+                                            f"{username}-{agent}-api_key updated! "
+                                            + str(
+                                                self.lc_manager.get_specific_by_agent(
+                                                    agent
+                                                )
+                                            ),
+                                        )
+                                        await send_room_message(
+                                            self.client,
+                                            room_id,
+                                            reply_message=f"{username}-{agent}-{api_key} updated! "  # noqa: E501
+                                            + str(
+                                                self.lc_manager.get_specific_by_agent(
+                                                    agent
+                                                )
+                                            ),
+                                            sender_id=sender_id,
+                                            user_message=raw_user_message,
+                                            reply_to_event_id="",
+                                        )
+
+                                        # update cache
+                                        if sender_id not in self.lc_cache:
+                                            agent = agent
+                                            api_url = (
+                                                self.lc_manager.get_command_api_url(
+                                                    username, agent
+                                                )[0][0]
+                                            )
+                                            api_key = api_key
+                                            permission = (
+                                                self.lc_manager.get_command_permission(
+                                                    username, agent
+                                                )[0][0]
+                                            )
+
+                                            self.lc_cache[sender_id] = {
+                                                "agent": agent,
+                                                "api_url": api_url,
+                                                "api_key": api_key,
+                                                "permission": permission,
+                                            }
+                                        else:
+                                            if (
+                                                self.lc_cache[sender_id]["agent"]
+                                                == agent
+                                            ):
+                                                self.lc_cache[sender_id][
+                                                    "api_key"
+                                                ] = api_key
+
+                                    # {3} update permission
+                                    elif params[0].strip() == "3":
+                                        username, agent, permission = params[1:]
+                                        if permission not in ["0", "1"]:
+                                            logger.warning("Invalid permission value")
+                                            await send_room_message(
+                                                self.client,
+                                                room_id,
+                                                reply_message="Invalid permission value",  # noqa: E501
+                                                sender_id=sender_id,
+                                                user_message=raw_user_message,
+                                                reply_to_event_id="",
+                                            )
+                                        else:
+                                            self.lc_manager.update_command_permission(
+                                                username, agent, int(permission)
+                                            )
+                                            logger.info(
+                                                f"{username}-{agent}-permission updated! "  # noqa: E501
+                                                + str(
+                                                    self.lc_manager.get_specific_by_agent(
+                                                        agent
+                                                    )
+                                                ),
+                                            )
+                                            await send_room_message(
+                                                self.client,
+                                                room_id,
+                                                reply_message=f"{username}-{agent}-permission updated! "  # noqa: E501
+                                                + str(
+                                                    self.lc_manager.get_specific_by_agent(
+                                                        agent
+                                                    )
+                                                ),
+                                                sender_id=sender_id,
+                                                user_message=raw_user_message,
+                                                reply_to_event_id="",
+                                            )
+
+                                            # update cache
+                                            if sender_id not in self.lc_cache:
+                                                agent = agent
+                                                api_url = (
+                                                    self.lc_manager.get_command_api_url(
+                                                        username, agent
+                                                    )[0][0]
+                                                )
+                                                api_key = (
+                                                    self.lc_manager.get_command_api_key(
+                                                        username, agent
+                                                    )[0][0]
+                                                )
+                                                permission = permission
+                                                self.lc_cache[sender_id] = {
+                                                    "agent": agent,
+                                                    "api_url": api_url,
+                                                    "api_key": api_key,
+                                                    "permission": permission,
+                                                }
+                                            else:
+                                                if (
+                                                    self.lc_cache[sender_id]["agent"]
+                                                    == agent
+                                                ):
+                                                    self.lc_cache[sender_id][
+                                                        "permission"
+                                                    ] = permission
+
+                                    # {4} update agent name
+                                    elif params[0].strip() == "4":
+                                        try:
+                                            username, agent, api_url = params[1:]
+                                            self.lc_manager.update_command_agent(
+                                                username, agent, api_url
+                                            )
+                                            logger.info(
+                                                "Agent name updated! "
+                                                + str(
+                                                    self.lc_manager.get_specific_by_agent(
+                                                        agent
+                                                    )
+                                                ),
+                                            )
+                                            await send_room_message(
+                                                self.client,
+                                                room_id,
+                                                reply_message="Agent name updated! "
+                                                + str(
+                                                    self.lc_manager.get_specific_by_agent(
+                                                        agent
+                                                    )
+                                                ),
+                                                sender_id=sender_id,
+                                                user_message=raw_user_message,
+                                                reply_to_event_id="",
+                                            )
+                                            # update cache
+                                            if sender_id not in self.lc_cache:
+                                                agent = agent
+                                                api_url = api_url
+                                                api_key = (
+                                                    self.lc_manager.get_command_api_key(
+                                                        username, agent
+                                                    )[0][0]
+                                                )
+                                                permission = self.lc_manager.get_command_permission(  # noqa: E501
+                                                    username, agent
+                                                )[
+                                                    0
+                                                ][
+                                                    0
+                                                ]
+                                                self.lc_cache[sender_id] = {
+                                                    "agent": agent,
+                                                    "api_url": api_url,
+                                                    "api_key": api_key,
+                                                    "permission": permission,
+                                                }
+                                            else:
+                                                self.lc_cache[sender_id][
+                                                    "agent"
+                                                ] = agent
+                                        except Exception as e:
+                                            logger.error(e, exc_info=True)
+                                            await send_room_message(
+                                                self.client,
+                                                room_id,
+                                                reply_message=str(e),
+                                            )
+                            elif command == "delete":
+                                if not 1 <= len(params) <= 2:
+                                    logger.warning("Invalid number of parameters")
+                                    await self.send_invalid_number_of_parameters_message(  # noqa: E501
+                                        room_id,
+                                        reply_to_event_id,
+                                        sender_id,
+                                        raw_user_message,
+                                    )
+                                else:
+                                    if len(params) == 1:
+                                        username = params[0]
+                                        self.lc_manager.delete_commands(username)
+                                        logger.info(f"Delete all agents of {username}")
+                                        await send_room_message(
+                                            self.client,
+                                            room_id,
+                                            reply_message="Delete Successfully!",
+                                            sender_id=sender_id,
+                                            user_message=raw_user_message,
+                                            reply_to_event_id="",
+                                        )
+                                        # remove from cache
+                                        if username in self.lc_cache:
+                                            del self.lc_cache[username]
+                                    elif len(params) == 2:
+                                        username, agent = params
+                                        self.lc_manager.delete_command(username, agent)
+                                        logger.info(f"Delete {agent} of {username}")
+                                        await send_room_message(
+                                            self.client,
+                                            room_id,
+                                            reply_message="Delete Successfully!",
+                                            sender_id=sender_id,
+                                            user_message=raw_user_message,
+                                            reply_to_event_id="",
+                                        )
+                                        # remove cache
+                                        if username in self.lc_cache:
+                                            if (
+                                                agent
+                                                == self.lc_cache[username]["agent"]
+                                            ):
+                                                del self.lc_cache[username]
+
+                            elif command == "list":
+                                if not 0 <= len(params) <= 1:
+                                    logger.warning("Invalid number of parameters")
+                                    await self.send_invalid_number_of_parameters_message(  # noqa: E501
+                                        room_id,
+                                        reply_to_event_id,
+                                        sender_id,
+                                        raw_user_message,
+                                    )
+                                else:
+                                    if len(params) == 0:
+                                        total_info = self.lc_manager.get_all()
+                                        logger.info(f"{total_info}")
+                                        await send_room_message(
+                                            self.client,
+                                            room_id,
+                                            reply_message=f"{total_info}",
+                                            sender_id=sender_id,
+                                            user_message=raw_user_message,
+                                            reply_to_event_id="",
+                                        )
+                                    elif len(params) == 1:
+                                        username = params[0]
+                                        user_info = (
+                                            self.lc_manager.get_specific_by_username(
+                                                username
+                                            )
+                                        )
+                                        logger.info(f"{user_info}")
+                                        await send_room_message(
+                                            self.client,
+                                            room_id,
+                                            reply_message=f"{user_info}",
+                                            sender_id=sender_id,
+                                            user_message=raw_user_message,
+                                            reply_to_event_id="",
+                                        )
+
+                        except Exception as e:
+                            logger.error(e, exc_info=True)
+                    # endif if sender_id in self.lc_admin
+                    else:
+                        logger.warning(f"{sender_id} is not admin")
+                        await send_room_message(
+                            self.client,
+                            room_id,
+                            reply_message=f"{sender_id} is not admin",
+                            sender_id=sender_id,
+                            user_message=raw_user_message,
+                            reply_to_event_id=reply_to_event_id,
+                        )
+
+            # !agent command
+            a = self.agent_prog.match(content_body)
+            if a:
+                command_with_params = a.group(1).strip()
+                split_items = re.sub("\s{1,}", " ", command_with_params).split(" ")
+                command = split_items[0].strip()
+                params = split_items[1:]
+                try:
+                    if command == "list":
+                        agents = self.lc_manager.get_command_agent(sender_id)
+                        await send_room_message(
+                            self.client,
+                            room_id,
+                            reply_message=f"{agents}",
+                            sender_id=sender_id,
+                            user_message=raw_user_message,
+                            reply_to_event_id=reply_to_event_id,
+                        )
+                    elif command == "use":
+                        if not len(params) == 1:
+                            logger.warning("Invalid number of parameters")
+                            await self.send_invalid_number_of_parameters_message(
+                                room_id,
+                                reply_to_event_id,
+                                sender_id,
+                                raw_user_message,
+                            )
+                        else:
+                            agent = params[0]
+                            if (agent,) in self.lc_manager.get_command_agent(sender_id):
+                                # update cache
+                                # tuple
+                                api_url = self.lc_manager.get_command_api_url(
+                                    sender_id, agent
+                                )[0][0]
+                                api_key = self.lc_manager.get_command_api_key(
+                                    sender_id, agent
+                                )[0][0]
+                                permission = self.lc_manager.get_command_permission(
+                                    sender_id, agent
+                                )[0][0]
+                                self.lc_cache[sender_id] = {
+                                    "agent": agent,
+                                    "api_url": api_url,
+                                    "api_key": api_key,
+                                    "permission": permission,
+                                }
+                                await send_room_message(
+                                    self.client,
+                                    room_id,
+                                    reply_message=f"Use {agent} successfully!",
+                                    sender_id=sender_id,
+                                    user_message=raw_user_message,
+                                    reply_to_event_id=reply_to_event_id,
+                                )
+                            else:
+                                logger.warning(
+                                    f"{agent} is not in {sender_id} agent list"
+                                )
+                                await send_room_message(
+                                    self.client,
+                                    room_id,
+                                    reply_message=f"{agent} is not in {sender_id} agent list",  # noqa: E501
+                                    sender_id=sender_id,
+                                    user_message=raw_user_message,
+                                    reply_to_event_id=reply_to_event_id,
+                                )
+
+                except Exception as e:
+                    logger.error(e, exc_info=True)
 
             # !new command
             n = self.new_prog.match(content_body)
@@ -605,19 +1254,26 @@ class Bot:
 
     # !lc command
     async def lc(
-        self, room_id, reply_to_event_id, prompt, sender_id, user_message
+        self,
+        room_id: str,
+        reply_to_event_id: str,
+        prompt: str,
+        sender_id: str,
+        user_message: str,
+        flowise_api_url: str,
+        flowise_api_key: str = None,
     ) -> None:
         try:
             # sending typing state
             await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
-            if self.flowise_api_key is not None:
-                headers = {"Authorization": f"Bearer {self.flowise_api_key}"}
+            if flowise_api_key is not None:
+                headers = {"Authorization": f"Bearer {flowise_api_key}"}
                 responseMessage = await flowise_query(
-                    self.flowise_api_url, prompt, self.httpx_client, headers
+                    flowise_api_url, prompt, self.httpx_client, headers
                 )
             else:
                 responseMessage = await flowise_query(
-                    self.flowise_api_url, prompt, self.httpx_client
+                    flowise_api_url, prompt, self.httpx_client
                 )
             await send_room_message(
                 self.client,
@@ -739,6 +1395,19 @@ class Bot:
             self.client,
             room_id,
             reply_message=GENERAL_ERROR_MESSAGE,
+            reply_to_event_id=reply_to_event_id,
+            sender_id=sender_id,
+            user_message=user_message,
+        )
+
+    # send Invalid number of parameters to room
+    async def send_invalid_number_of_parameters_message(
+        self, room_id, reply_to_event_id, sender_id, user_message
+    ):
+        await send_room_message(
+            self.client,
+            room_id,
+            reply_message=INVALID_NUMBER_OF_PARAMETERS_MESSAGE,
             reply_to_event_id=reply_to_event_id,
             sender_id=sender_id,
             user_message=user_message,

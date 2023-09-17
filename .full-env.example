@@ -17,6 +17,7 @@ SYSTEM_PROMPT="You are ChatGPT,  a large language model trained by OpenAI. Respo
 TEMPERATURE=0.8
 FLOWISE_API_URL="http://flowise:3000/api/v1/prediction/6deb3c89-45bf-4ac4-a0b0-b2d5ef249d21"
 FLOWISE_API_KEY="U3pe0bbVDWOyoJtsDzFJjRvHKTP3FRjODwuM78exC3A="
+LC_ADMIN="@admin:xxxxxx.xxx,@admin2:xxxxxx.xxx"
 IMAGE_GENERATION_ENDPOINT="http://localai:8080/v1/images/generations"
 IMAGE_GENERATION_BACKEND="sdwui" # openai or sdwui
 TIMEOUT=120.0
