@@ -5,6 +5,7 @@ import re
 import sys
 import traceback
 from typing import Union, Optional
+import aiofiles.os
 
 import httpx
 
@@ -33,6 +34,7 @@ from send_image import send_room_image
 from send_message import send_room_message
 from flowise import flowise_query
 from gptbot import Chatbot
+import imagegen
 
 logger = getlogger()
 DEVICE_NAME = "MatrixChatGPTBot"
@@ -61,6 +63,8 @@ class Bot:
         temperature: Union[float, None] = None,
         flowise_api_url: Optional[str] = None,
         flowise_api_key: Optional[str] = None,
+        image_generation_endpoint: Optional[str] = None,
+        image_generation_backend: Optional[str] = None,
         timeout: Union[float, None] = None,
     ):
         if homeserver is None or user_id is None or device_id is None:
@@ -69,6 +73,14 @@ class Bot:
 
         if password is None:
             logger.warning("password is required")
+            sys.exit(1)
+
+        if image_generation_endpoint and image_generation_backend not in [
+            "openai",
+            "sdwui",
+            None,
+        ]:
+            logger.warning("image_generation_backend must be openai or sdwui")
             sys.exit(1)
 
         self.homeserver: str = homeserver
@@ -98,10 +110,15 @@ class Bot:
         self.import_keys_password: str = import_keys_password
         self.flowise_api_url: str = flowise_api_url
         self.flowise_api_key: str = flowise_api_key
+        self.image_generation_endpoint: str = image_generation_endpoint
+        self.image_generation_backend: str = image_generation_backend
 
         self.timeout: float = timeout or 120.0
 
         self.base_path = Path(os.path.dirname(__file__)).parent
+
+        if not os.path.exists(self.base_path / "images"):
+            os.mkdir(self.base_path / "images")
 
         self.httpx_client = httpx.AsyncClient(
             follow_redirects=True,
@@ -265,6 +282,23 @@ class Bot:
                             sender_id,
                             raw_user_message,
                             new_command,
+                        )
+                    )
+                except Exception as e:
+                    logger.error(e, exc_info=True)
+
+            # !pic command
+            p = self.pic_prog.match(content_body)
+            if p:
+                prompt = p.group(1)
+                try:
+                    asyncio.create_task(
+                        self.pic(
+                            room_id,
+                            prompt,
+                            reply_to_event_id,
+                            sender_id,
+                            raw_user_message,
                         )
                     )
                 except Exception as e:
@@ -523,9 +557,7 @@ class Bot:
             logger.info(estr)
 
     # !chat command
-    async def chat(
-        self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message
-    ):
+    async def chat(self, room_id, reply_to_event_id, prompt, sender_id, user_message):
         try:
             await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
             content = await self.chatbot.ask_async(
@@ -538,16 +570,17 @@ class Bot:
                 reply_message=content,
                 reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
-                user_message=raw_user_message,
+                user_message=user_message,
             )
-        except Exception:
+        except Exception as e:
+            logger.error(e, exc_info=True)
             await self.send_general_error_message(
-                room_id, reply_to_event_id, sender_id, raw_user_message
+                room_id, reply_to_event_id, sender_id, user_message
             )
 
     # !gpt command
     async def gpt(
-        self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message
+        self, room_id, reply_to_event_id, prompt, sender_id, user_message
     ) -> None:
         try:
             # sending typing state, seconds to milliseconds
@@ -562,17 +595,17 @@ class Bot:
                 reply_message=responseMessage.strip(),
                 reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
-                user_message=raw_user_message,
+                user_message=user_message,
             )
         except Exception as e:
+            logger.error(e, exc_info=True)
             await self.send_general_error_message(
-                room_id, reply_to_event_id, sender_id, raw_user_message
+                room_id, reply_to_event_id, sender_id, user_message
             )
-            logger.error(e)
 
     # !lc command
     async def lc(
-        self, room_id, reply_to_event_id, prompt, sender_id, raw_user_message
+        self, room_id, reply_to_event_id, prompt, sender_id, user_message
     ) -> None:
         try:
             # sending typing state
@@ -592,11 +625,12 @@ class Bot:
                 reply_message=responseMessage.strip(),
                 reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
-                user_message=raw_user_message,
+                user_message=user_message,
             )
-        except Exception:
+        except Exception as e:
+            logger.error(e, exc_info=True)
             await self.send_general_error_message(
-                room_id, reply_to_event_id, sender_id, raw_user_message
+                room_id, reply_to_event_id, sender_id, user_message
             )
 
     # !new command
@@ -605,7 +639,7 @@ class Bot:
         room_id,
         reply_to_event_id,
         sender_id,
-        raw_user_message,
+        user_message,
         new_command,
     ) -> None:
         try:
@@ -623,32 +657,58 @@ class Bot:
                 reply_message=content,
                 reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
-                user_message=raw_user_message,
+                user_message=user_message,
             )
-        except Exception:
+        except Exception as e:
+            logger.error(e, exc_info=True)
             await self.send_general_error_message(
-                room_id, reply_to_event_id, sender_id, raw_user_message
+                room_id, reply_to_event_id, sender_id, user_message
             )
 
     # !pic command
-    async def pic(self, room_id, prompt, replay_to_event_id):
+    async def pic(self, room_id, prompt, replay_to_event_id, sender_id, user_message):
         try:
-            await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
-            # generate image
-            links = await self.imageGen.get_images(prompt)
-            image_path_list = await self.imageGen.save_images(
-                links, self.base_path / "images", self.output_four_images
-            )
-            # send image
-            for image_path in image_path_list:
-                await send_room_image(self.client, room_id, image_path)
-            await self.client.room_typing(room_id, typing_state=False)
+            if self.image_generation_endpoint is not None:
+                await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
+                # generate image
+                b64_datas = await imagegen.get_images(
+                    self.httpx_client,
+                    self.image_generation_endpoint,
+                    prompt,
+                    self.image_generation_backend,
+                    timeount=self.timeout,
+                    api_key=self.openai_api_key,
+                    n=1,
+                    size="256x256",
+                )
+                image_path_list = await asyncio.to_thread(
+                    imagegen.save_images,
+                    b64_datas,
+                    self.base_path / "images",
+                )
+                # send image
+                for image_path in image_path_list:
+                    await send_room_image(self.client, room_id, image_path)
+                    await aiofiles.os.remove(image_path)
+                await self.client.room_typing(room_id, typing_state=False)
+            else:
+                await send_room_message(
+                    self.client,
+                    room_id,
+                    reply_message="Image generation endpoint not provided",
+                    reply_to_event_id=replay_to_event_id,
+                    sender_id=sender_id,
+                    user_message=user_message,
+                )
         except Exception as e:
+            logger.error(e, exc_info=True)
             await send_room_message(
                 self.client,
                 room_id,
-                reply_message=str(e),
+                reply_message="Image generation failed",
                 reply_to_event_id=replay_to_event_id,
+                user_message=user_message,
+                sender_id=sender_id,
             )
 
     # !help command

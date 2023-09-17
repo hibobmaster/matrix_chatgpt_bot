@@ -5,10 +5,11 @@ This is a simple Matrix bot that support using OpenAI API, Langchain to generate
 
 ## Feature
 
-1. Support official openai api and self host models([LocalAI](https://github.com/go-skynet/LocalAI))
+1. Support official openai api and self host models([LocalAI](https://localai.io/model-compatibility/))
 2. Support E2E Encrypted Room
 3. Colorful code blocks
 4. Langchain([Flowise](https://github.com/FlowiseAI/Flowise))
+5. Image Generation with [DALL·E](https://platform.openai.com/docs/api-reference/images/create) or [LocalAI](https://localai.io/features/image-generation/) or [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/API)
 
 
 ## Installation and Setup
@@ -67,7 +68,7 @@ python src/main.py
 
 ## Usage
 
-To interact with the bot, simply send a message to the bot in the Matrix room with one of the two prompts:<br>
+To interact with the bot, simply send a message to the bot in the Matrix room with one of the following prompts:<br>
 - `!help` help message
 
 - `!gpt` To generate a one time response:
@@ -95,8 +96,8 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 
 
 ## Image Generation
-
-
+![demo1](https://i.imgur.com/voeomsF.jpg)
+![demo2](https://i.imgur.com/BKZktWd.jpg)
 https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/ <br>
 
 

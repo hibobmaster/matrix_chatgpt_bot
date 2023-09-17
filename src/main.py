@@ -42,6 +42,8 @@ async def main():
             temperature=float(config.get("temperature")),
             flowise_api_url=config.get("flowise_api_url"),
             flowise_api_key=config.get("flowise_api_key"),
+            image_generation_endpoint=config.get("image_generation_endpoint"),
+            image_generation_backend=config.get("image_generation_backend"),
             timeout=float(config.get("timeout")),
         )
         if (
@@ -71,6 +73,8 @@ async def main():
             temperature=float(os.environ.get("TEMPERATURE")),
             flowise_api_url=os.environ.get("FLOWISE_API_URL"),
             flowise_api_key=os.environ.get("FLOWISE_API_KEY"),
+            image_generation_endpoint=os.environ.get("IMAGE_GENERATION_ENDPOINT"),
+            image_generation_backend=os.environ.get("IMAGE_GENERATION_BACKEND"),
             timeout=float(os.environ.get("TIMEOUT")),
         )
         if (
