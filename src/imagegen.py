@@ -15,7 +15,7 @@ async def get_images(
             url,
             headers={
                 "Content-Type": "application/json",
-                "Authorization": "Bearer " + kwargs.get("api_key"),
+                "Authorization": f"Bearer {kwargs.get('api_key')}",
             },
             json={
                 "prompt": prompt,
