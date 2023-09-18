@@ -222,7 +222,10 @@ class Bot:
             content_body = re.sub("\r\n|\r|\n", " ", raw_user_message)
 
             # !gpt command
-            if self.openai_api_key is not None:
+            if (
+                self.openai_api_key is not None
+                or self.gpt_api_endpoint != "https://api.openai.com/v1/chat/completions"
+            ):
                 m = self.gpt_prog.match(content_body)
                 if m:
                     prompt = m.group(1)
@@ -239,29 +242,26 @@ class Bot:
                     except Exception as e:
                         logger.error(e, exc_info=True)
 
-            if self.gpt_api_endpoint is not None:
-                # chatgpt
+            # !chat command
+            if (
+                self.openai_api_key is not None
+                or self.gpt_api_endpoint != "https://api.openai.com/v1/chat/completions"
+            ):
                 n = self.chat_prog.match(content_body)
                 if n:
                     prompt = n.group(1)
-                    if self.openai_api_key is not None:
-                        try:
-                            asyncio.create_task(
-                                self.chat(
-                                    room_id,
-                                    reply_to_event_id,
-                                    prompt,
-                                    sender_id,
-                                    raw_user_message,
-                                )
+                    try:
+                        asyncio.create_task(
+                            self.chat(
+                                room_id,
+                                reply_to_event_id,
+                                prompt,
+                                sender_id,
+                                raw_user_message,
                             )
-                        except Exception as e:
-                            logger.error(e, exc_info=True)
-                    else:
-                        logger.warning("No API_KEY provided")
-                        await send_room_message(
-                            self.client, room_id, reply_message="API_KEY not provided"
                         )
+                    except Exception as e:
+                        logger.error(e, exc_info=True)
 
             # lc command
             if self.lc_admin is not None:
