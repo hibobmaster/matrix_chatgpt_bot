@@ -117,7 +117,8 @@ class Bot:
         self.base_path = Path(os.path.dirname(__file__)).parent
 
         if lc_admin is not None:
-            lc_admin = list(filter(None, lc_admin.split(",")))
+            if isinstance(lc_admin, str):
+                lc_admin = list(filter(None, lc_admin.split(",")))
         self.lc_admin = lc_admin
         self.lc_cache = {}
         if self.lc_admin is not None:

@@ -1,6 +1,6 @@
 ## Introduction
 
-This is a simple Matrix bot that support using OpenAI API, Langchain to generate responses from user inputs. The bot responds to these commands: `!gpt`, `!chat` and `!pic` and `!new` and `!lc` and `!help` depending on the first word of the prompt.
+This is a simple Matrix bot that support using OpenAI API, Langchain to generate responses from user inputs. The bot responds to these commands: `!gpt`, `!chat`, `!pic`, `!new`, `!lc` and `!help` depending on the first word of the prompt.
 ![ChatGPT](https://i.imgur.com/kK4rnPf.jpeg)
 
 ## Feature
@@ -23,7 +23,7 @@ Create two empty file, for persist database only<br>
 touch sync_db manage_db
 sudo docker compose up -d
 ```
-
+manage_db(can be ignored) is for langchain agent, sync_db is for matrix sync database<br>
 <hr>
 Normal Method:<br>
 system dependece: <code>libolm-dev</code>
