@@ -67,7 +67,7 @@ async def main():
             top_p=os.environ.get("TOP_P"),
             presence_penalty=os.environ.get("PRESENCE_PENALTY"),
             frequency_penalty=os.environ.get("FREQUENCY_PENALTY"),
-            reply_count=int(os.environ.get("REPLY_COUNT")),
+            reply_count=os.environ.get("REPLY_COUNT"),
             system_prompt=os.environ.get("SYSTEM_PROMPT"),
             temperature=os.environ.get("TEMPERATURE"),
             lc_admin=os.environ.get("LC_ADMIN"),
