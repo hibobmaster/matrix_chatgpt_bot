@@ -43,6 +43,8 @@ async def main():
             lc_admin=config.get("lc_admin"),
             image_generation_endpoint=config.get("image_generation_endpoint"),
             image_generation_backend=config.get("image_generation_backend"),
+            image_generation_width=config.get("image_generation_width"),
+            image_generation_height=config.get("image_generation_height"),
             timeout=config.get("timeout"),
         )
         if (

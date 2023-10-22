@@ -66,6 +66,8 @@ class Bot:
         lc_admin: Optional[list[str]] = None,
         image_generation_endpoint: Optional[str] = None,
         image_generation_backend: Optional[str] = None,
+        image_generation_width: Optional[int] = 256,
+        image_generation_height: Optional[int] = 256,
         timeout: Union[float, None] = None,
     ):
         if homeserver is None or user_id is None or device_id is None:
@@ -111,6 +113,8 @@ class Bot:
         self.import_keys_password: str = import_keys_password
         self.image_generation_endpoint: str = image_generation_endpoint
         self.image_generation_backend: str = image_generation_backend
+        self.image_generation_width: int = image_generation_width
+        self.image_generation_height: int = image_generation_height
 
         self.timeout: float = timeout or 120.0
 
@@ -249,8 +253,12 @@ class Bot:
                 or self.gpt_api_endpoint != "https://api.openai.com/v1/chat/completions"
             ):
                 n = self.chat_prog.match(content_body)
-                if n:
-                    prompt = n.group(1)
+                nd = content_body[:1] != '!'
+                if n or nd:
+                    if n:
+                        prompt = n.group(1)
+                    elif nd:
+                        prompt = content_body
                     try:
                         asyncio.create_task(
                             self.chat(
@@ -1338,7 +1346,7 @@ class Bot:
                     timeount=self.timeout,
                     api_key=self.openai_api_key,
                     n=1,
-                    size="256x256",
+                    size="%dx%d" % (self.image_generation_width,self.image_generation_height),
                 )
                 image_path_list = await asyncio.to_thread(
                     imagegen.save_images,
