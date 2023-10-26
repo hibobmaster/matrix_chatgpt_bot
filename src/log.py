@@ -13,7 +13,7 @@ def getlogger():
         # create handlers
         warn_handler = logging.StreamHandler()
         info_handler = logging.StreamHandler()
-        error_handler = logging.FileHandler("bot.log", mode="a")
+        error_handler = logging.FileHandler(log_path, mode="a")
         warn_handler.setLevel(logging.WARNING)
         error_handler.setLevel(logging.ERROR)
         info_handler.setLevel(logging.INFO)
