@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-log_path = Path(os.path.dirname(__file__)).parent / "/var/log/chatgpt/"
+log_path = "/var/log/chatgpt/"
 
 
 def getlogger():
