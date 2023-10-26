@@ -2,7 +2,7 @@ import logging
 import os
 from pathlib import Path
 
-log_path = Path(os.path.dirname(__file__)).parent / "/var/log/chatgpt/bot.log"
+log_path = Path(os.path.dirname(__file__)).parent / "/var/log/chatgpt/"
 
 
 def getlogger():
@@ -11,9 +11,9 @@ def getlogger():
     if not logger.hasHandlers():
         logger.setLevel(logging.INFO)
         # create handlers
-        warn_handler = logging.StreamHandler()
-        info_handler = logging.StreamHandler()
-        error_handler = logging.FileHandler(log_path, mode="a")
+        warn_handler = logging.StreamHandler(log_path + 'warn.log', mode="a")
+        info_handler = logging.StreamHandler(log_path + 'info.log', mode="a")
+        error_handler = logging.FileHandler(log_path + 'error.log', mode="a")
         warn_handler.setLevel(logging.WARNING)
         error_handler.setLevel(logging.ERROR)
         info_handler.setLevel(logging.INFO)
