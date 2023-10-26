@@ -213,8 +213,7 @@ class Bot:
 
         # print info to console
         logger.info(
-            f"Message received in room {room.display_name}\n"
-            f"{room.user_name(event.sender)} | {raw_user_message}"
+            f"Message received in room {room.display_name} | {room.user_name(event.sender)}"
         )
 
         # prevent command trigger loop

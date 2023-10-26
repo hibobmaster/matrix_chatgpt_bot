@@ -18,8 +18,7 @@ async def send_room_image(client: AsyncClient, room_id: str, image: str):
     """
     image: image path
     """
-    mime_type = magic.from_file(image, mime=True)  # e.g. "image/jpeg"
-
+    mime_type = magic.detect_from_filename(image).mime_type
     im = Image.open(image)
     (width, height) = im.size  # im.size returns (width,height) tuple
 
