@@ -18,8 +18,8 @@ ENGINES = [
     "gpt-4-32k",
     "gpt-4-0613",
     "gpt-4-32k-0613",
+    "gpt-4-1106-preview",
 ]
-
 
 class Chatbot:
     """
@@ -122,10 +122,10 @@ class Chatbot:
         """
         Get token count
         """
-        if self.engine not in ENGINES:
-            raise NotImplementedError(
-                f"Engine {self.engine} is not supported. Select from {ENGINES}",
-            )
+        # if self.engine not in ENGINES:
+        #     raise NotImplementedError(
+        #         f"Engine {self.engine} is not supported. Select from {ENGINES}",
+        #     )
         tiktoken.model.MODEL_TO_ENCODING["gpt-4"] = "cl100k_base"
 
         encoding = tiktoken.encoding_for_model(self.engine)
