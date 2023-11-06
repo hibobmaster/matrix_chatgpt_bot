@@ -54,7 +54,9 @@ class Chatbot:
             a large language model trained by OpenAI. Respond conversationally"
         )
         self.max_tokens: int = max_tokens or (
-            31000
+            128000
+            if "gpt-4-1106-preview" in engine
+            else 31000
             if "gpt-4-32k" in engine
             else 7000
             if "gpt-4" in engine
@@ -63,7 +65,9 @@ class Chatbot:
             else 4000
         )
         self.truncate_limit: int = truncate_limit or (
-            30500
+            127500
+            if "gpt-4-1106-preview" in engine
+            else 30500
             if "gpt-4-32k" in engine
             else 6500
             if "gpt-4" in engine
