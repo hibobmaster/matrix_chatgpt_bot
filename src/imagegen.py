@@ -21,7 +21,7 @@ async def get_images(
                 "prompt": prompt,
                 "model": "dall-e-3",
                 "n": kwargs.get("n", 1),
-                "size": "1792x1024",
+                "size": "1024x1792",
                 "quality": "hd",
                 "response_format": "b64_json",
             },
