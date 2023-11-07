@@ -19,8 +19,10 @@ async def get_images(
             },
             json={
                 "prompt": prompt,
+                "model": "dall-e-3",
                 "n": kwargs.get("n", 1),
-                "size": kwargs.get("size", "256x256"),
+                "size": "1792x1024",
+                "quality": "hd",
                 "response_format": "b64_json",
             },
             timeout=timeout,
