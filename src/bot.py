@@ -95,7 +95,7 @@ class Bot:
             gpt_api_endpoint or "https://api.openai.com/v1/chat/completions"
         )
         self.gpt_model: str = gpt_model or "gpt-3.5-turbo"
-        self.max_tokens: int = max_tokens or 128000
+        self.max_tokens: int = max_tokens or 4000
         self.top_p: float = top_p or 1.0
         self.temperature: float = temperature or 0.8
         self.presence_penalty: float = presence_penalty or 0.0
