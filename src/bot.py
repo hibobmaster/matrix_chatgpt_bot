@@ -1214,6 +1214,7 @@ class Bot:
             content = await self.chatbot.ask_async(
                 prompt=prompt,
                 convo_id=sender_id,
+                reset=0
             )
             await send_room_message(
                 self.client,
@@ -1230,20 +1231,18 @@ class Bot:
             )
 
     # !gpt command
-    async def gpt(
-        self, room_id, reply_to_event_id, prompt, sender_id, user_message
-    ) -> None:
+    async def gpt(self, room_id, reply_to_event_id, prompt, sender_id, user_message):
         try:
-            # sending typing state, seconds to milliseconds
             await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
-            responseMessage = await self.chatbot.oneTimeAsk(
+            content = await self.chatbot.ask_async(
                 prompt=prompt,
+                convo_id=sender_id,
+                reset=1
             )
-
             await send_room_message(
                 self.client,
                 room_id,
-                reply_message=responseMessage.strip(),
+                reply_message=content,
                 reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
                 user_message=user_message,

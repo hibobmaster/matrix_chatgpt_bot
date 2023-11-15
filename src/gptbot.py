@@ -154,6 +154,7 @@ class Chatbot:
 
     async def ask_stream_async(
         self,
+        reset: int,
         prompt: str,
         role: str = "user",
         convo_id: str = "default",
@@ -165,7 +166,7 @@ class Chatbot:
         Ask a question
         """
         # Make conversation if it doesn't exist
-        if convo_id not in self.conversation:
+        if convo_id not in self.conversation or reset == 1:
             self.reset(convo_id=convo_id, system_prompt=self.system_prompt)
         self.add_to_conversation(prompt, "user", convo_id=convo_id)
         self.__truncate_conversation(convo_id=convo_id)
@@ -239,6 +240,7 @@ class Chatbot:
     async def ask_async(
         self,
         prompt: str,
+        reset: int,
         role: str = "user",
         convo_id: str = "default",
         model: str = None,
@@ -249,6 +251,7 @@ class Chatbot:
         Non-streaming ask
         """
         response = self.ask_stream_async(
+            reset=reset,
             prompt=prompt,
             role=role,
             convo_id=convo_id,
