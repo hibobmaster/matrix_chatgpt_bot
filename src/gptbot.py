@@ -191,10 +191,15 @@ class Chatbot:
                 ),
                 "n": kwargs.get("n", self.reply_count),
                 "user": role,
-                "max_tokens": min(
-                    self.get_max_tokens(convo_id=convo_id),
-                    kwargs.get("max_tokens", self.max_tokens),
-                ),
+                # max tokens 
+                # integer or null
+                # Optional
+                # Defaults to inf
+                # The maximum number of tokens to generate in the chat completion.
+                #"max_tokens": min(
+                #    self.get_max_tokens(convo_id=convo_id),
+                #    kwargs.get("max_tokens", self.max_tokens),
+                #),
             },
             timeout=kwargs.get("timeout", self.timeout),
         ) as response:
