@@ -10,7 +10,7 @@ async def flowise_query(
     Args:
         api_url (str): The URL of the Flowise API.
         prompt (str): The question to ask the API.
-        session (aiohttp.ClientSession): The aiohttp session to use.
+        session (httpx.AsyncClient): The httpx session to use.
         headers (dict, optional): The headers to use. Defaults to None.
 
     Returns:
