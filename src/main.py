@@ -26,6 +26,7 @@ async def main():
             homeserver=config.get("homeserver"),
             user_id=config.get("user_id"),
             password=config.get("password"),
+            access_token=config.get("access_token"),
             device_id=config.get("device_id"),
             room_id=config.get("room_id"),
             import_keys_path=config.get("import_keys_path"),
@@ -56,6 +57,7 @@ async def main():
             homeserver=os.environ.get("HOMESERVER"),
             user_id=os.environ.get("USER_ID"),
             password=os.environ.get("PASSWORD"),
+            access_token=os.environ.get("ACCESS_TOKEN"),
             device_id=os.environ.get("DEVICE_ID"),
             room_id=os.environ.get("ROOM_ID"),
             import_keys_path=os.environ.get("IMPORT_KEYS_PATH"),
@@ -97,6 +99,9 @@ async def main():
             getattr(signal, signame),
             lambda: asyncio.create_task(matrix_bot.close(sync_task)),
         )
+
+    if matrix_bot.client.should_upload_keys:
+        await matrix_bot.client.keys_upload()
 
     await sync_task
 

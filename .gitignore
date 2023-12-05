@@ -172,3 +172,4 @@ cython_debug/
 # Custom
 sync_db
 manage_db
+element-keys.txt

@@ -2,6 +2,7 @@
     "homeserver": "https://matrix-client.matrix.org",
     "user_id": "@lullap:xxxxx.org",
     "password": "xxxxxxxxxxxxxxxxxx",
+    "access_token": "xxxxxxxxxxxxxx",
     "device_id": "MatrixChatGPTBot",
     "room_id": "!xxxxxxxxxxxxxxxxxxxxxx:xxxxx.org",
     "import_keys_path": "element-keys.txt",

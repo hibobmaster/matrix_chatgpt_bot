@@ -26,6 +26,7 @@ from nio import (
     MegolmEvent,
     RoomMessageText,
     ToDeviceError,
+    WhoamiResponse,
 )
 from nio.store.database import SqliteStore
 
@@ -48,8 +49,9 @@ class Bot:
         self,
         homeserver: str,
         user_id: str,
+        device_id: str,
         password: Union[str, None] = None,
-        device_id: str = "MatrixChatGPTBot",
+        access_token: Union[str, None] = None,
         room_id: Union[str, None] = None,
         import_keys_path: Optional[str] = None,
         import_keys_password: Optional[str] = None,
@@ -72,7 +74,7 @@ class Bot:
             logger.warning("homeserver && user_id && device_id is required")
             sys.exit(1)
 
-        if password is None:
+        if password is None and access_token is None:
             logger.warning("password is required")
             sys.exit(1)
 
@@ -87,6 +89,7 @@ class Bot:
         self.homeserver: str = homeserver
         self.user_id: str = user_id
         self.password: str = password
+        self.access_token: str = access_token
         self.device_id: str = device_id
         self.room_id: str = room_id
 
@@ -1418,13 +1421,33 @@ class Bot:
 
     # bot login
     async def login(self) -> None:
-        resp = await self.client.login(password=self.password, device_name=DEVICE_NAME)
-        if not isinstance(resp, LoginResponse):
-            logger.error("Login Failed")
-            await self.httpx_client.aclose()
-            await self.client.close()
+        try:
+            if self.password is not None:
+                resp = await self.client.login(
+                    password=self.password, device_name=DEVICE_NAME
+                )
+                if not isinstance(resp, LoginResponse):
+                    logger.error("Login Failed")
+                    await self.httpx_client.aclose()
+                    await self.client.close()
+                    sys.exit(1)
+                logger.info("Successfully login via password")
+            elif self.access_token is not None:
+                self.client.restore_login(
+                    user_id=self.user_id,
+                    device_id=self.device_id,
+                    access_token=self.access_token,
+                )
+                resp = await self.client.whoami()
+                if not isinstance(resp, WhoamiResponse):
+                    logger.error("Login Failed")
+                    await self.close()
+                    sys.exit(1)
+                logger.info("Successfully login via access_token")
+        except Exception as e:
+            logger.error(e)
+            await self.close()
             sys.exit(1)
-        logger.info("Success login via password")
 
     # import keys
     async def import_keys(self):
@@ -1434,9 +1457,7 @@ class Bot:
         if isinstance(resp, EncryptionError):
             logger.error(f"import_keys failed with {resp}")
         else:
-            logger.info(
-                "import_keys success, please remove import_keys configuration!!!"
-            )
+            logger.info("import_keys success, you can remove import_keys configuration")
 
     # sync messages in the room
     async def sync_forever(self, timeout=30000, full_state=True) -> None:
