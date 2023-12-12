@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1
+- Fix variable type imported from environment variable
+- Bump pre-commit hook version
+
 ## 1.4.0
 - Fix access_token login method not work in E2EE Room
 
