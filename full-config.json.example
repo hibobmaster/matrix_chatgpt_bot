@@ -19,6 +19,8 @@
     "system_prompt": "You are ChatGPT,  a large language model trained by OpenAI. Respond conversationally",
     "lc_admin": ["@admin:xxxxx.org"],
     "image_generation_endpoint": "http://localai:8080/v1/images/generations",
-    "image_generation_backend": "openai",
+    "image_generation_backend": "localai",
+    "image_generation_size": "512x512",
+    "image_format": "webp",
     "timeout": 120.0
 }

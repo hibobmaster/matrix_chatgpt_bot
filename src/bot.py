@@ -68,22 +68,31 @@ class Bot:
         lc_admin: Optional[list[str]] = None,
         image_generation_endpoint: Optional[str] = None,
         image_generation_backend: Optional[str] = None,
+        image_generation_size: Optional[str] = None,
+        image_format: Optional[str] = None,
         timeout: Union[float, None] = None,
     ):
         if homeserver is None or user_id is None or device_id is None:
-            logger.warning("homeserver && user_id && device_id is required")
+            logger.error("homeserver && user_id && device_id is required")
             sys.exit(1)
 
         if password is None and access_token is None:
-            logger.warning("password is required")
+            logger.error("password is required")
             sys.exit(1)
 
         if image_generation_endpoint and image_generation_backend not in [
             "openai",
             "sdwui",
+            "localai",
             None,
         ]:
-            logger.warning("image_generation_backend must be openai or sdwui")
+            logger.error("image_generation_backend must be openai or sdwui or localai")
+            sys.exit(1)
+
+        if image_format not in ["jpeg", "webp", "png", None]:
+            logger.error(
+                "image_format should be jpeg or webp or png, leave blank for jpeg"
+            )
             sys.exit(1)
 
         self.homeserver: str = homeserver
@@ -114,6 +123,20 @@ class Bot:
         self.import_keys_password: str = import_keys_password
         self.image_generation_endpoint: str = image_generation_endpoint
         self.image_generation_backend: str = image_generation_backend
+
+        if image_format:
+            self.image_format: str = image_format
+        else:
+            self.image_format = "jpeg"
+
+        if image_generation_size is None:
+            self.image_generation_size = "512x512"
+            self.image_generation_width = 512
+            self.image_generation_height = 512
+        else:
+            self.image_generation_size = image_generation_size
+            self.image_generation_width = self.image_generation_size.split("x")[0]
+            self.image_generation_height = self.image_generation_size.split("x")[1]
 
         self.timeout: float = timeout or 120.0
 
@@ -1333,20 +1356,19 @@ class Bot:
             if self.image_generation_endpoint is not None:
                 await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
                 # generate image
-                b64_datas = await imagegen.get_images(
+                image_path_list = await imagegen.get_images(
                     self.httpx_client,
                     self.image_generation_endpoint,
                     prompt,
                     self.image_generation_backend,
                     timeount=self.timeout,
                     api_key=self.openai_api_key,
+                    output_path=self.base_path / "images",
                     n=1,
-                    size="256x256",
-                )
-                image_path_list = await asyncio.to_thread(
-                    imagegen.save_images,
-                    b64_datas,
-                    self.base_path / "images",
+                    size=self.image_generation_size,
+                    width=self.image_generation_width,
+                    height=self.image_generation_height,
+                    image_format=self.image_format,
                 )
                 # send image
                 for image_path in image_path_list:

@@ -44,6 +44,8 @@ async def main():
             lc_admin=config.get("lc_admin"),
             image_generation_endpoint=config.get("image_generation_endpoint"),
             image_generation_backend=config.get("image_generation_backend"),
+            image_generation_size=config.get("image_generation_size"),
+            image_format=config.get("image_format"),
             timeout=config.get("timeout"),
         )
         if (
@@ -75,6 +77,8 @@ async def main():
             lc_admin=os.environ.get("LC_ADMIN"),
             image_generation_endpoint=os.environ.get("IMAGE_GENERATION_ENDPOINT"),
             image_generation_backend=os.environ.get("IMAGE_GENERATION_BACKEND"),
+            image_generation_size=os.environ.get("IMAGE_GENERATION_SIZE"),
+            image_format=os.environ.get("IMAGE_FORMAT"),
             timeout=float(os.environ.get("TIMEOUT", 120.0)),
         )
         if (
