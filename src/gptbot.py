@@ -122,13 +122,13 @@ class Chatbot:
         """
         Get token count
         """
+        _engine = self.engine
         if self.engine not in ENGINES:
-            raise NotImplementedError(
-                f"Engine {self.engine} is not supported. Select from {ENGINES}",
-            )
+            # use gpt-3.5-turbo to caculate token
+            _engine = "gpt-3.5-turbo"
         tiktoken.model.MODEL_TO_ENCODING["gpt-4"] = "cl100k_base"
 
-        encoding = tiktoken.encoding_for_model(self.engine)
+        encoding = tiktoken.encoding_for_model(_engine)
 
         num_tokens = 0
         for message in self.conversation[convo_id]:
