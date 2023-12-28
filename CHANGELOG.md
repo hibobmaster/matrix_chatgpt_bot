@@ -1,4 +1,8 @@
 # Changelog
+
+## 1.5.1
+- fix: set timeout not work in image generation
+
 ## 1.5.0
 - Fix localai v2.0+ image generation
 - Fallback to gpt-3.5-turbo when caculate tokens using custom model
