@@ -1361,7 +1361,7 @@ class Bot:
                     self.image_generation_endpoint,
                     prompt,
                     self.image_generation_backend,
-                    timeount=self.timeout,
+                    timeout=self.timeout,
                     api_key=self.openai_api_key,
                     output_path=self.base_path / "images",
                     n=1,
