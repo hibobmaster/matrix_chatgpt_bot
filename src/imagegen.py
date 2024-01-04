@@ -48,6 +48,7 @@ async def get_images(
             json={
                 "prompt": prompt,
                 "sampler_name": kwargs.get("sampler_name", "Euler a"),
+                "cfg_scale": kwargs.get("cfg_scale", 7),
                 "batch_size": kwargs.get("n", 1),
                 "steps": kwargs.get("steps", 20),
                 "width": kwargs.get("width", 512),

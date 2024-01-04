@@ -45,6 +45,9 @@ async def main():
             image_generation_endpoint=config.get("image_generation_endpoint"),
             image_generation_backend=config.get("image_generation_backend"),
             image_generation_size=config.get("image_generation_size"),
+            sdwui_steps=config.get("sdwui_steps"),
+            sdwui_sampler_name=config.get("sdwui_sampler_name"),
+            sdwui_cfg_scale=config.get("sdwui_cfg_scale"),
             image_format=config.get("image_format"),
             timeout=config.get("timeout"),
         )
@@ -78,6 +81,9 @@ async def main():
             image_generation_endpoint=os.environ.get("IMAGE_GENERATION_ENDPOINT"),
             image_generation_backend=os.environ.get("IMAGE_GENERATION_BACKEND"),
             image_generation_size=os.environ.get("IMAGE_GENERATION_SIZE"),
+            sdwui_steps=int(os.environ.get("SDWUI_STEPS", 20)),
+            sdwui_sampler_name=os.environ.get("SDWUI_SAMPLER_NAME"),
+            sdwui_cfg_scale=float(os.environ.get("SDWUI_CFG_SCALE", 7)),
             image_format=os.environ.get("IMAGE_FORMAT"),
             timeout=float(os.environ.get("TIMEOUT", 120.0)),
         )

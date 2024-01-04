@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.2
+- Expose more stable diffusion webui api parameters
+
 ## 1.5.1
 - fix: set timeout not work in image generation
 

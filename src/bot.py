@@ -70,6 +70,9 @@ class Bot:
         image_generation_backend: Optional[str] = None,
         image_generation_size: Optional[str] = None,
         image_format: Optional[str] = None,
+        sdwui_steps: Optional[int] = None,
+        sdwui_sampler_name: Optional[str] = None,
+        sdwui_cfg_scale: Optional[float] = None,
         timeout: Union[float, None] = None,
     ):
         if homeserver is None or user_id is None or device_id is None:
@@ -137,6 +140,10 @@ class Bot:
             self.image_generation_size = image_generation_size
             self.image_generation_width = self.image_generation_size.split("x")[0]
             self.image_generation_height = self.image_generation_size.split("x")[1]
+
+        self.sdwui_steps = sdwui_steps
+        self.sdwui_sampler_name = sdwui_sampler_name
+        self.sdwui_cfg_scale = sdwui_cfg_scale
 
         self.timeout: float = timeout or 120.0
 
@@ -1368,6 +1375,9 @@ class Bot:
                     size=self.image_generation_size,
                     width=self.image_generation_width,
                     height=self.image_generation_height,
+                    steps=self.sdwui_steps,
+                    sampler_name=self.sdwui_sampler_name,
+                    cfg_scale=self.sdwui_cfg_scale,
                     image_format=self.image_format,
                 )
                 # send image

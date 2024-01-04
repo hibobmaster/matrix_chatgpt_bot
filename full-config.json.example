@@ -21,6 +21,9 @@
     "image_generation_endpoint": "http://localai:8080/v1/images/generations",
     "image_generation_backend": "localai",
     "image_generation_size": "512x512",
+    "sdwui_steps": 20,
+    "sdwui_sampler_name": "Euler a",
+    "sdwui_cfg_scale": 7,
     "image_format": "webp",
     "timeout": 120.0
 }
