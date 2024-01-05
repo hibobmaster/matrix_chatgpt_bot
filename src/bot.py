@@ -1245,7 +1245,7 @@ class Bot:
     async def chat(self, room_id, reply_to_event_id, prompt, sender_id, user_message):
         try:
             await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
-            content = await self.chatbot.ask_async(
+            content = await self.chatbot.ask_async_v2(
                 prompt=prompt,
                 convo_id=sender_id,
             )

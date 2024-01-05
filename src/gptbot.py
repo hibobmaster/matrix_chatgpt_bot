@@ -250,6 +250,54 @@ class Chatbot:
         full_response: str = "".join([r async for r in response])
         return full_response
 
+    async def ask_async_v2(
+        self,
+        prompt: str,
+        role: str = "user",
+        convo_id: str = "default",
+        model: str = None,
+        pass_history: bool = True,
+        **kwargs,
+    ) -> str:
+        # Make conversation if it doesn't exist
+        if convo_id not in self.conversation:
+            self.reset(convo_id=convo_id, system_prompt=self.system_prompt)
+        self.add_to_conversation(prompt, "user", convo_id=convo_id)
+        self.__truncate_conversation(convo_id=convo_id)
+        # Get response
+        response = await self.aclient.post(
+            url=self.api_url,
+            headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+            json={
+                "model": model or self.engine,
+                "messages": self.conversation[convo_id] if pass_history else [prompt],
+                # kwargs
+                "temperature": kwargs.get("temperature", self.temperature),
+                "top_p": kwargs.get("top_p", self.top_p),
+                "presence_penalty": kwargs.get(
+                    "presence_penalty",
+                    self.presence_penalty,
+                ),
+                "frequency_penalty": kwargs.get(
+                    "frequency_penalty",
+                    self.frequency_penalty,
+                ),
+                "n": kwargs.get("n", self.reply_count),
+                "user": role,
+                "max_tokens": min(
+                    self.get_max_tokens(convo_id=convo_id),
+                    kwargs.get("max_tokens", self.max_tokens),
+                ),
+            },
+            timeout=kwargs.get("timeout", self.timeout),
+        )
+        resp = response.json()
+        full_response = resp["choices"][0]["message"]["content"]
+        self.add_to_conversation(
+            full_response, resp["choices"][0]["message"]["role"], convo_id=convo_id
+        )
+        return full_response
+
     def reset(self, convo_id: str = "default", system_prompt: str = None) -> None:
         """
         Reset the conversation

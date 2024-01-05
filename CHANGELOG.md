@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.5.3
+- Make gptbot more compatible by using non-streaming method
+
 ## 1.5.2
 - Expose more stable diffusion webui api parameters
 
