@@ -1,7 +1,8 @@
 ## Introduction
 
-This is a simple Matrix bot that support using OpenAI API, Langchain to generate responses from user inputs. The bot responds to these commands: `!gpt`, `!chat`, `!pic`, `!new`, `!lc` and `!help` depending on the first word of the prompt.
+This is a simple Matrix bot that support using OpenAI API, Langchain to generate responses from user inputs. The bot responds to these commands: `!gpt`, `!chat`, `!v`, `!pic`, `!new`, `!lc` and `!help` depending on the first word of the prompt.
 ![ChatGPT](https://i.imgur.com/kK4rnPf.jpeg)
+![GPT Vision](https://i.imgur.com/6EqC603.jpeg)
 
 ## Feature
 
@@ -10,7 +11,7 @@ This is a simple Matrix bot that support using OpenAI API, Langchain to generate
 3. Colorful code blocks
 4. Langchain([Flowise](https://github.com/FlowiseAI/Flowise))
 5. Image Generation with [DALL·E](https://platform.openai.com/docs/api-reference/images/create) or [LocalAI](https://localai.io/features/image-generation/) or [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/API)
-
+6. GPT Vision(openai or [GPT Vision API](https://platform.openai.com/docs/guides/vision) compatible such as [LocalAI](https://localai.io/features/gpt-vision/))
 
 ## Installation and Setup
 
@@ -81,6 +82,14 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 
 ```
 !chat Can you tell me a joke?
+```
+
+- `!v` GPT Vision command
+```
+# if image is uploaded by bot
+!v what is in the image?
+# else you should @bot_account before the command
+@bot !v what is in the image?
 ```
 
 - `!lc` To chat using langchain api endpoint

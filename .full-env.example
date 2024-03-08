@@ -24,4 +24,6 @@ IMAGE_FORMAT="webp"
 SDWUI_STEPS=20
 SDWUI_SAMPLER_NAME="Euler a"
 SDWUI_CFG_SCALE=7
+GPT_VISION_MODEL="llava"
+GPT_VISION_API_ENDPOINT="https://localai.xxxxxxx.xxxxxxx/v1/chat/completions"
 TIMEOUT=120.0

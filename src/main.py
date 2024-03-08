@@ -49,6 +49,8 @@ async def main():
             sdwui_sampler_name=config.get("sdwui_sampler_name"),
             sdwui_cfg_scale=config.get("sdwui_cfg_scale"),
             image_format=config.get("image_format"),
+            gpt_vision_model=config.get("gpt_vision_model"),
+            gpt_vision_api_endpoint=config.get("gpt_vision_api_endpoint"),
             timeout=config.get("timeout"),
         )
         if (
@@ -85,6 +87,8 @@ async def main():
             sdwui_sampler_name=os.environ.get("SDWUI_SAMPLER_NAME"),
             sdwui_cfg_scale=float(os.environ.get("SDWUI_CFG_SCALE", 7)),
             image_format=os.environ.get("IMAGE_FORMAT"),
+            gpt_vision_model=os.environ.get("GPT_VISION_MODEL"),
+            gpt_vision_api_endpoint=os.environ.get("GPT_VISION_API_ENDPOINT"),
             timeout=float(os.environ.get("TIMEOUT", 120.0)),
         )
         if (
