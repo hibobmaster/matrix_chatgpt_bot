@@ -59,6 +59,7 @@ jobs:
           images: ghcr.io/hibobmaster/matrixchatgptbot
           tags: |
             type=raw,value=latest
+            type=ref,event=tag
             type=sha,format=long
 
       - name: Build and push Docker image(ghcr)
