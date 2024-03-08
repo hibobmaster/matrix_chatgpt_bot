@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.6.0
+- Add GPT Vision
+
 ## 1.5.3
 - Make gptbot more compatible by using non-streaming method
 
