@@ -12,8 +12,9 @@ services:
       # use env file or config.json
       # - ./config.json:/app/config.json
       # use touch to create empty db file, for persist database only
-      # manage_db(can be ignored) is for langchain agent, sync_db is for matrix sync database
+      # manage_db(can be ignored) is for langchain agent, sync_db is for matrix sync database, context.db is for bot chat context
       - ./sync_db:/app/sync_db
+      - ./context.db:/app/context.db
       # - ./manage_db:/app/manage_db
       # import_keys path
       # - ./element-keys.txt:/app/element-keys.txt

@@ -227,6 +227,8 @@ class Bot:
         self.new_prog = re.compile(r"\s*!new\s+(.+)$")
 
     async def close(self, task: asyncio.Task) -> None:
+        self.chatbot.cursor.close()
+        self.chatbot.conn.close()
         await self.httpx_client.aclose()
         if self.lc_admin is not None:
             self.lc_manager.c.close()
@@ -251,6 +253,9 @@ class Bot:
         # sender_id
         sender_id = event.sender
 
+        # event source
+        event_source = event.source
+
         # user_message
         raw_user_message = event.body
 
@@ -264,6 +269,48 @@ class Bot:
         if self.user_id != event.sender:
             # remove newline character from event.body
             content_body = re.sub("\r\n|\r|\n", " ", raw_user_message)
+
+            # @bot and reply in thread
+            if "m.mentions" in event_source["content"]:
+                if "user_ids" in event_source["content"]["m.mentions"]:
+                    # @bot
+                    if (
+                        self.user_id
+                        in event_source["content"]["m.mentions"]["user_ids"]
+                    ):
+                        try:
+                            asyncio.create_task(
+                                self.thread_chat(
+                                    room_id,
+                                    reply_to_event_id,
+                                    sender_id=sender_id,
+                                    thread_root_id=reply_to_event_id,
+                                    prompt=content_body,
+                                )
+                            )
+                        except Exception as e:
+                            logger.error(e, exe_info=True)
+
+            # thread converstaion
+            if "m.relates_to" in event_source["content"]:
+                if "rel_type" in event_source["content"]["m.relates_to"]:
+                    thread_root_id = event_source["content"]["m.relates_to"]["event_id"]
+                    # thread is created by @bot
+                    if thread_root_id in self.chatbot.conversation:
+                        try:
+                            asyncio.create_task(
+                                self.thread_chat(
+                                    room_id,
+                                    reply_to_event_id,
+                                    sender_id=sender_id,
+                                    thread_root_id=thread_root_id,
+                                    prompt=content_body,
+                                )
+                            )
+                        except Exception as e:
+                            logger.error(e, exe_info=True)
+
+            # common command
 
             # !gpt command
             if (
@@ -1299,6 +1346,37 @@ class Bot:
         except BaseException:
             estr = traceback.format_exc()
             logger.info(estr)
+
+    # thread chat
+    async def thread_chat(
+        self, room_id, reply_to_event_id, thread_root_id, prompt, sender_id
+    ):
+        try:
+            await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
+            content = await self.chatbot.ask_async_v2(
+                prompt=prompt,
+                convo_id=thread_root_id,
+            )
+            await send_room_message(
+                self.client,
+                room_id,
+                reply_message=content,
+                reply_to_event_id=reply_to_event_id,
+                sender_id=sender_id,
+                reply_in_thread=True,
+                thread_root_id=thread_root_id,
+            )
+        except Exception as e:
+            logger.error(e, exe_info=True)
+            await send_room_message(
+                self.client,
+                room_id,
+                reply_message=GENERAL_ERROR_MESSAGE,
+                sender_id=sender_id,
+                reply_to_event_id=reply_to_event_id,
+                reply_in_thread=True,
+                thread_root_id=thread_root_id,
+            )
 
     # !chat command
     async def chat(self, room_id, reply_to_event_id, prompt, sender_id, user_message):

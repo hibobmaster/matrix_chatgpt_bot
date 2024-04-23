@@ -173,3 +173,4 @@ cython_debug/
 sync_db
 manage_db
 element-keys.txt
+context.db

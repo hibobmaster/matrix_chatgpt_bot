@@ -12,6 +12,7 @@ This is a simple Matrix bot that support using OpenAI API, Langchain to generate
 4. Langchain([Flowise](https://github.com/FlowiseAI/Flowise))
 5. Image Generation with [DALL·E](https://platform.openai.com/docs/api-reference/images/create) or [LocalAI](https://localai.io/features/image-generation/) or [stable-diffusion-webui](https://github.com/AUTOMATIC1111/stable-diffusion-webui/wiki/API)
 6. GPT Vision(openai or [GPT Vision API](https://platform.openai.com/docs/guides/vision) compatible such as [LocalAI](https://localai.io/features/gpt-vision/))
+7. Room level and thread level chat context
 
 ## Installation and Setup
 
@@ -21,10 +22,10 @@ For explainations and complete parameter list see: https://github.com/hibobmaste
 Create two empty file, for persist database only<br>
 
 ```bash
-touch sync_db manage_db
+touch sync_db context.db manage_db
 sudo docker compose up -d
 ```
-manage_db(can be ignored) is for langchain agent, sync_db is for matrix sync database<br>
+manage_db(can be ignored) is for langchain agent, sync_db is for matrix sync database, context.db is for bot chat context<br>
 <hr>
 Normal Method:<br>
 system dependece: <code>libolm-dev</code>
@@ -115,12 +116,16 @@ LangChain(flowise) admin: https://github.com/hibobmaster/matrix_chatgpt_bot/wiki
 ![demo2](https://i.imgur.com/BKZktWd.jpg)
 https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/ <br>
 
+## Thread level Context
+Mention bot with prompt, bot will reply in thread.
+
+To keep context just send prompt in thread directly without mention it.
+
+![thread level context 1](https://i.imgur.com/4vLvNCt.jpeg)
+![thread level context 2](https://i.imgur.com/1eb1Lmd.jpeg)
+
 
 ## Thanks
 1. [matrix-nio](https://github.com/poljar/matrix-nio)
 2. [acheong08](https://github.com/acheong08)
 3. [8go](https://github.com/8go/)
-
-<a href="https://jb.gg/OpenSourceSupport" target="_blank">
-<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jb_beam.png" alt="JetBrains Logo (Main) logo." width="200" height="200">
-</a>

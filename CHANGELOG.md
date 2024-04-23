@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.0
+- Support thread level context
+
 ## 1.6.0
 - Add GPT Vision
 

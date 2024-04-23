@@ -2,6 +2,7 @@
 Code derived from https://github.com/acheong08/ChatGPT/blob/main/src/revChatGPT/V3.py
 A simple wrapper for the official ChatGPT API
 """
+import sqlite3
 import json
 from typing import AsyncGenerator
 from tenacity import retry, wait_random_exponential, stop_after_attempt
@@ -9,16 +10,7 @@ import httpx
 import tiktoken
 
 
-ENGINES = [
-    "gpt-3.5-turbo",
-    "gpt-3.5-turbo-16k",
-    "gpt-3.5-turbo-0613",
-    "gpt-3.5-turbo-16k-0613",
-    "gpt-4",
-    "gpt-4-32k",
-    "gpt-4-0613",
-    "gpt-4-32k-0613",
-]
+ENGINES = ["gpt-3.5-turbo", "gpt-4", "gpt-4-32k", "gpt-4-turbo"]
 
 
 class Chatbot:
@@ -41,6 +33,7 @@ class Chatbot:
         reply_count: int = 1,
         truncate_limit: int = None,
         system_prompt: str = None,
+        db_path: str = "context.db",
     ) -> None:
         """
         Initialize Chatbot with API key (from https://platform.openai.com/account/api-keys)
@@ -53,23 +46,24 @@ class Chatbot:
             or "You are ChatGPT, \
             a large language model trained by OpenAI. Respond conversationally"
         )
+        # https://platform.openai.com/docs/models
         self.max_tokens: int = max_tokens or (
-            31000
+            127000
+            if "gpt-4-turbo" in engine
+            else 31000
             if "gpt-4-32k" in engine
             else 7000
             if "gpt-4" in engine
-            else 15000
-            if "gpt-3.5-turbo-16k" in engine
-            else 4000
+            else 16000
         )
         self.truncate_limit: int = truncate_limit or (
-            30500
+            126500
+            if "gpt-4-turbo" in engine
+            else 30500
             if "gpt-4-32k" in engine
             else 6500
             if "gpt-4" in engine
-            else 14500
-            if "gpt-3.5-turbo-16k" in engine
-            else 3500
+            else 15500
         )
         self.temperature: float = temperature
         self.top_p: float = top_p
@@ -80,17 +74,49 @@ class Chatbot:
 
         self.aclient = aclient
 
-        self.conversation: dict[str, list[dict]] = {
-            "default": [
-                {
-                    "role": "system",
-                    "content": system_prompt,
-                },
-            ],
-        }
+        self.db_path = db_path
+
+        self.conn = sqlite3.connect(self.db_path)
+        self.cursor = self.conn.cursor()
+
+        self._create_tables()
+
+        self.conversation = self._load_conversation()
 
         if self.get_token_count("default") > self.max_tokens:
             raise Exception("System prompt is too long")
+
+    def _create_tables(self) -> None:
+        self.conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS conversations(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    convo_id TEXT UNIQUE,
+                    messages TEXT
+            )
+        """
+        )
+
+    def _load_conversation(self) -> dict[str, list[dict]]:
+        conversations: dict[str, list[dict]] = {
+            "default": [
+                {
+                    "role": "system",
+                    "content": self.system_prompt,
+                },
+            ],
+        }
+        self.cursor.execute("SELECT convo_id, messages FROM conversations")
+        for convo_id, messages in self.cursor.fetchall():
+            conversations[convo_id] = json.loads(messages)
+        return conversations
+
+    def _save_conversation(self, convo_id) -> None:
+        self.conn.execute(
+            "INSERT OR REPLACE INTO conversations (convo_id, messages) VALUES (?, ?)",
+            (convo_id, json.dumps(self.conversation[convo_id])),
+        )
+        self.conn.commit()
 
     def add_to_conversation(
         self,
@@ -102,6 +128,7 @@ class Chatbot:
         Add a message to the conversation
         """
         self.conversation[convo_id].append({"role": role, "content": message})
+        self._save_conversation(convo_id)
 
     def __truncate_conversation(self, convo_id: str = "default") -> None:
         """
@@ -116,6 +143,7 @@ class Chatbot:
                 self.conversation[convo_id].pop(1)
             else:
                 break
+        self._save_conversation(convo_id)
 
     # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
     def get_token_count(self, convo_id: str = "default") -> int:
@@ -305,6 +333,7 @@ class Chatbot:
         self.conversation[convo_id] = [
             {"role": "system", "content": system_prompt or self.system_prompt},
         ]
+        self._save_conversation(convo_id)
 
     @retry(wait=wait_random_exponential(min=2, max=5), stop=stop_after_attempt(3))
     async def oneTimeAsk(
