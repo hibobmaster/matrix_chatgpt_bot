@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1
+- Fix official openai image generation
+- Thread level chatting for Element Android
+
 ## 1.7.0
 - Support thread level context
 
