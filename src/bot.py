@@ -222,7 +222,7 @@ class Bot:
         self.lc_prog = re.compile(r"\s*!lc\s+(.+)$")
         self.lcadmin_prog = re.compile(r"\s*!lcadmin\s+(.+)$")
         self.agent_prog = re.compile(r"\s*!agent\s+(.+)$")
-        self.gpt_vision_prog = re.compile(r"\s*!v\s+(.+)$")
+        self.escape_user_id = re.compile("\s*:\s*(.+)$")
         self.help_prog = re.compile(r"\s*!help\s*.*$")
         self.new_prog = re.compile(r"\s*!new\s+(.+)$")
 
@@ -271,6 +271,7 @@ class Bot:
             content_body = re.sub("\r\n|\r|\n", " ", raw_user_message)
 
             # @bot and reply in thread
+            # gpt vision for element web
             if "m.mentions" in event_source["content"]:
                 if "user_ids" in event_source["content"]["m.mentions"]:
                     # @bot
@@ -278,124 +279,82 @@ class Bot:
                         self.user_id
                         in event_source["content"]["m.mentions"]["user_ids"]
                     ):
-                        try:
-                            asyncio.create_task(
-                                self.thread_chat(
-                                    room_id,
-                                    reply_to_event_id,
-                                    sender_id=sender_id,
-                                    thread_root_id=reply_to_event_id,
-                                    prompt=content_body,
+                        if "m.relates_to" in event.source["content"]:
+                            if (
+                                "m.in_reply_to"
+                                in event_source["content"]["m.relates_to"]
+                            ):
+                                in_reply_to_event_id = event_source["content"][
+                                    "m.relates_to"
+                                ]["m.in_reply_to"]["event_id"]
+                                event_info = await self.get_event(
+                                    room_id, in_reply_to_event_id
                                 )
-                            )
-                        except Exception as e:
-                            logger.error(e, exe_info=True)
-            #  element android does not have m.mentions, we use another way to make it work
+                                msgtype = event_info["content"]["msgtype"]
+
+                                # gpt vision, don't work in E2EE room
+                                if "m.image" == msgtype:
+                                    v = self.escape_user_id.search(content_body)
+                                    if v:
+                                        prompt = v.group(1)
+                                        image_mimetype = event_info["content"]["info"][
+                                            "mimetype"
+                                        ]
+                                        url = event_info["content"]["url"]
+                                        resp = await self.download_mxc(url)
+                                        if isinstance(resp, DownloadError):
+                                            logger.error("Download of image failed")
+                                        else:
+                                            b64_image = base64.b64encode(
+                                                resp.body
+                                            ).decode("utf-8")
+                                            image_url = f"data:{image_mimetype};base64,{b64_image}"
+                                            asyncio.create_task(
+                                                self.gpt_vision_cmd(
+                                                    room_id,
+                                                    reply_to_event_id,
+                                                    prompt,
+                                                    image_url,
+                                                    sender_id,
+                                                    raw_user_message,
+                                                )
+                                            )
+                                            return
+                        # thread level chatting
+                        else:
+                            try:
+                                asyncio.create_task(
+                                    self.thread_chat(
+                                        room_id,
+                                        reply_to_event_id,
+                                        sender_id=sender_id,
+                                        thread_root_id=reply_to_event_id,
+                                        prompt=content_body,
+                                    )
+                                )
+                            except Exception as e:
+                                logger.error(e, exe_info=True)
+
+                            return
+
+            # gpt vision for element android
             elif "formatted_body" in event_source["content"]:
                 if (
                     self.user_id in event_source["content"]["formatted_body"]
-                    and "m.relates_to" not in event_source["content"]
+                    and "m.relates_to" in event_source["content"]
                 ):
-                    try:
-                        asyncio.create_task(
-                            self.thread_chat(
-                                room_id,
-                                reply_to_event_id,
-                                sender_id=sender_id,
-                                thread_root_id=reply_to_event_id,
-                                prompt=content_body,
-                            )
-                        )
-                    except Exception as e:
-                        logger.error(e, exe_info=True)
+                    if "m.in_reply_to" in event_source["content"]["m.relates_to"]:
+                        in_reply_to_event_id = event_source["content"]["m.relates_to"][
+                            "m.in_reply_to"
+                        ]["event_id"]
+                        event_info = await self.get_event(room_id, in_reply_to_event_id)
+                        msgtype = event_info["content"]["msgtype"]
 
-            # thread converstaion
-            if "m.relates_to" in event_source["content"]:
-                if "rel_type" in event_source["content"]["m.relates_to"]:
-                    thread_root_id = event_source["content"]["m.relates_to"]["event_id"]
-                    # thread is created by @bot
-                    if thread_root_id in self.chatbot.conversation:
-                        try:
-                            asyncio.create_task(
-                                self.thread_chat(
-                                    room_id,
-                                    reply_to_event_id,
-                                    sender_id=sender_id,
-                                    thread_root_id=thread_root_id,
-                                    prompt=content_body,
-                                )
-                            )
-                        except Exception as e:
-                            logger.error(e, exe_info=True)
-
-            # common command
-
-            # !gpt command
-            if (
-                self.openai_api_key is not None
-                or self.gpt_api_endpoint != "https://api.openai.com/v1/chat/completions"
-            ):
-                m = self.gpt_prog.match(content_body)
-                if m:
-                    prompt = m.group(1)
-                    try:
-                        asyncio.create_task(
-                            self.gpt(
-                                room_id,
-                                reply_to_event_id,
-                                prompt,
-                                sender_id,
-                                raw_user_message,
-                            )
-                        )
-                    except Exception as e:
-                        logger.error(e, exc_info=True)
-
-            # !chat command
-            if (
-                self.openai_api_key is not None
-                or self.gpt_api_endpoint != "https://api.openai.com/v1/chat/completions"
-            ):
-                n = self.chat_prog.match(content_body)
-                if n:
-                    prompt = n.group(1)
-                    try:
-                        asyncio.create_task(
-                            self.chat(
-                                room_id,
-                                reply_to_event_id,
-                                prompt,
-                                sender_id,
-                                raw_user_message,
-                            )
-                        )
-                    except Exception as e:
-                        logger.error(e, exc_info=True)
-
-            # !v command
-            # not work in E2EE room
-            if self.gpt_vision_api_endpoint and self.gpt_vision_model:
-                if (
-                    "m.relates_to" in event.source["content"]
-                    and "m.mentions" in event.source["content"]
-                    and "user_ids" in event.source["content"]["m.mentions"]
-                ):
-                    if (
-                        self.user_id
-                        in event.source["content"]["m.mentions"]["user_ids"]
-                    ):
-                        v = self.gpt_vision_prog.search(content_body)
-                        if v:
-                            prompt = v.group(1)
-                            # Trigger gpt vision flow
-                            in_reply_to_event_id = event.source["content"][
-                                "m.relates_to"
-                            ]["m.in_reply_to"]["event_id"]
-                            event_info = await self.get_event(
-                                room_id, in_reply_to_event_id
-                            )
-                            msgtype = event_info["content"]["msgtype"]
-                            if "m.image" == msgtype:
+                        # gpt vision, don't work in E2EE room
+                        if "m.image" == msgtype:
+                            v = self.escape_user_id.search(content_body)
+                            if v:
+                                prompt = v.group(1)
                                 image_mimetype = event_info["content"]["info"][
                                     "mimetype"
                                 ]
@@ -420,6 +379,97 @@ class Bot:
                                             raw_user_message,
                                         )
                                     )
+                                    return
+
+            #  element android does not have m.mentions, we use another way to make thread level chatting work
+            if "formatted_body" in event_source["content"]:
+                if (
+                    self.user_id in event_source["content"]["formatted_body"]
+                    and "m.relates_to" not in event_source["content"]
+                ):
+                    try:
+                        asyncio.create_task(
+                            self.thread_chat(
+                                room_id,
+                                reply_to_event_id,
+                                sender_id=sender_id,
+                                thread_root_id=reply_to_event_id,
+                                prompt=content_body,
+                            )
+                        )
+                    except Exception as e:
+                        logger.error(e, exe_info=True)
+
+                    return
+
+            # thread converstaion
+            if "m.relates_to" in event_source["content"]:
+                if "rel_type" in event_source["content"]["m.relates_to"]:
+                    thread_root_id = event_source["content"]["m.relates_to"]["event_id"]
+                    # thread is created by @bot
+                    if thread_root_id in self.chatbot.conversation:
+                        try:
+                            asyncio.create_task(
+                                self.thread_chat(
+                                    room_id,
+                                    reply_to_event_id,
+                                    sender_id=sender_id,
+                                    thread_root_id=thread_root_id,
+                                    prompt=content_body,
+                                )
+                            )
+                        except Exception as e:
+                            logger.error(e, exe_info=True)
+
+                        return
+
+            # common command
+
+            # !gpt command
+            if (
+                self.openai_api_key is not None
+                or self.gpt_api_endpoint != "https://api.openai.com/v1/chat/completions"
+            ):
+                m = self.gpt_prog.match(content_body)
+                if m:
+                    prompt = m.group(1)
+                    try:
+                        asyncio.create_task(
+                            self.gpt(
+                                room_id,
+                                reply_to_event_id,
+                                prompt,
+                                sender_id,
+                                raw_user_message,
+                            )
+                        )
+                    except Exception as e:
+                        logger.error(e, exc_info=True)
+
+                    return
+
+            # !chat command
+            if (
+                self.openai_api_key is not None
+                or self.gpt_api_endpoint != "https://api.openai.com/v1/chat/completions"
+            ):
+                n = self.chat_prog.match(content_body)
+                if n:
+                    prompt = n.group(1)
+                    try:
+                        asyncio.create_task(
+                            self.chat(
+                                room_id,
+                                reply_to_event_id,
+                                prompt,
+                                sender_id,
+                                raw_user_message,
+                            )
+                        )
+                    except Exception as e:
+                        logger.error(e, exc_info=True)
+
+                    return
 
             # lc command
             if self.lc_admin is not None:
@@ -1096,6 +1146,8 @@ class Bot:
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
+                return
+
             # !pic command
             p = self.pic_prog.search(content_body)
             if p:
@@ -1113,6 +1165,8 @@ class Bot:
                 except Exception as e:
                     logger.error(e, exc_info=True)
 
+                return
+
             # help command
             h = self.help_prog.search(content_body)
             if h:
@@ -1124,6 +1178,8 @@ class Bot:
                     )
                 except Exception as e:
                     logger.error(e, exc_info=True)
+
+                return
 
     # message_callback decryption_failure event
     async def decryption_failure(self, room: MatrixRoom, event: MegolmEvent) -> None:
@@ -1601,10 +1657,11 @@ class Bot:
         help_info = (
             "!gpt [prompt], generate a one time response without context conversation\n"
             + "!chat [prompt], chat with context conversation\n"
-            + "!pic [prompt], Image generation by DALL·E or LocalAI or stable-diffusion-webui\n"  # noqa: E501
+            + "!pic [prompt], Image generation by DALL-E-3 or LocalAI or stable-diffusion-webui\n"  # noqa: E501
             + "!new + chat, start a new conversation \n"
             + "!lc [prompt], chat using langchain api\n"
-            + "!v [prompt], gpt_vision\n"
+            + "quote a image and @bot with prompt, gpt vision function\n"
+            + "@bot with prompt, create a thread level chatting\n"
             + "!help, help message"
         )  # noqa: E501
 
