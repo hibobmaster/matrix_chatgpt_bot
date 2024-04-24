@@ -290,6 +290,24 @@ class Bot:
                             )
                         except Exception as e:
                             logger.error(e, exe_info=True)
+            #  element android does not have m.mentions, we use another way to make it work
+            elif "formatted_body" in event_source["content"]:
+                if (
+                    self.user_id in event_source["content"]["formatted_body"]
+                    and "m.relates_to" not in event_source["content"]
+                ):
+                    try:
+                        asyncio.create_task(
+                            self.thread_chat(
+                                room_id,
+                                reply_to_event_id,
+                                sender_id=sender_id,
+                                thread_root_id=reply_to_event_id,
+                                prompt=content_body,
+                            )
+                        )
+                    except Exception as e:
+                        logger.error(e, exe_info=True)
 
             # thread converstaion
             if "m.relates_to" in event_source["content"]:
