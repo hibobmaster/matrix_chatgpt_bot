@@ -369,6 +369,33 @@ class Bot:
                                     image_url = (
                                         f"data:{image_mimetype};base64,{b64_image}"
                                     )
+                                    if (
+                                        "rel_type"
+                                        in event_source["content"]["m.relates_to"]
+                                    ):
+                                        if (
+                                            "m.thread"
+                                            == event_source["content"]["m.relates_to"][
+                                                "rel_type"
+                                            ]
+                                        ):
+                                            thread_root_id = event_source["content"][
+                                                "m.relates_to"
+                                            ]["event_id"]
+                                            asyncio.create_task(
+                                                self.gpt_vision_cmd(
+                                                    room_id,
+                                                    reply_to_event_id,
+                                                    prompt,
+                                                    image_url,
+                                                    sender_id,
+                                                    raw_user_message,
+                                                    reply_in_thread=True,
+                                                    thread_root_id=thread_root_id,
+                                                )
+                                            )
+                                            return
+
                                     asyncio.create_task(
                                         self.gpt_vision_cmd(
                                             room_id,
@@ -408,20 +435,63 @@ class Bot:
                     thread_root_id = event_source["content"]["m.relates_to"]["event_id"]
                     # thread is created by @bot
                     if thread_root_id in self.chatbot.conversation:
-                        try:
-                            asyncio.create_task(
-                                self.thread_chat(
-                                    room_id,
-                                    reply_to_event_id,
-                                    sender_id=sender_id,
-                                    thread_root_id=thread_root_id,
-                                    prompt=content_body,
-                                )
-                            )
-                        except Exception as e:
-                            logger.error(e, exe_info=True)
+                        msgtype = event_source["content"]["msgtype"]
+                        if "m.text" == msgtype:
+                            # !pic command for thread chatting
+                            p = self.pic_prog.search(content_body)
+                            if p:
+                                prompt = p.group(1)
+                                try:
+                                    asyncio.create_task(
+                                        self.pic(
+                                            room_id,
+                                            prompt,
+                                            reply_to_event_id,
+                                            sender_id,
+                                            raw_user_message,
+                                            reply_in_thread=True,
+                                            thread_root_id=thread_root_id,
+                                        )
+                                    )
+                                except Exception as e:
+                                    logger.error(e, exc_info=True)
 
-                        return
+                                return
+
+                            # !help command for thread chatting
+                            h = self.help_prog.search(content_body)
+                            if h:
+                                try:
+                                    asyncio.create_task(
+                                        self.help(
+                                            room_id,
+                                            reply_to_event_id,
+                                            sender_id,
+                                            raw_user_message,
+                                            reply_in_thread=True,
+                                            thread_root_id=thread_root_id,
+                                        )
+                                    )
+                                except Exception as e:
+                                    logger.error(e, exc_info=True)
+
+                                return
+
+                            # normal chatting function
+                            try:
+                                asyncio.create_task(
+                                    self.thread_chat(
+                                        room_id,
+                                        reply_to_event_id,
+                                        sender_id=sender_id,
+                                        thread_root_id=thread_root_id,
+                                        prompt=content_body,
+                                    )
+                                )
+                            except Exception as e:
+                                logger.error(e, exe_info=True)
+
+                            return
 
             # common command
 
@@ -1508,6 +1578,8 @@ class Bot:
         image_url: str,
         sender_id: str,
         user_message: str,
+        reply_in_thread=False,
+        thread_root_id=None,
     ) -> None:
         try:
             # sending typing state, seconds to milliseconds
@@ -1528,6 +1600,8 @@ class Bot:
                 reply_to_event_id=reply_to_event_id,
                 sender_id=sender_id,
                 user_message=user_message,
+                reply_in_thread=reply_in_thread,
+                thread_root_id=thread_root_id,
             )
         except Exception as e:
             logger.error(e, exc_info=True)
@@ -1605,7 +1679,16 @@ class Bot:
             )
 
     # !pic command
-    async def pic(self, room_id, prompt, replay_to_event_id, sender_id, user_message):
+    async def pic(
+        self,
+        room_id,
+        prompt,
+        replay_to_event_id,
+        sender_id,
+        user_message,
+        reply_in_thread=False,
+        thread_root_id=None,
+    ):
         try:
             if self.image_generation_endpoint is not None:
                 await self.client.room_typing(room_id, timeout=int(self.timeout) * 1000)
@@ -1629,7 +1712,14 @@ class Bot:
                 )
                 # send image
                 for image_path in image_path_list:
-                    await send_room_image(self.client, room_id, image_path)
+                    await send_room_image(
+                        self.client,
+                        room_id,
+                        image_path,
+                        replay_to_event_id,
+                        reply_in_thread=reply_in_thread,
+                        thread_root_id=thread_root_id,
+                    )
                     await aiofiles.os.remove(image_path)
                 await self.client.room_typing(room_id, typing_state=False)
             else:
@@ -1653,7 +1743,15 @@ class Bot:
             )
 
     # !help command
-    async def help(self, room_id, reply_to_event_id, sender_id, user_message):
+    async def help(
+        self,
+        room_id,
+        reply_to_event_id,
+        sender_id,
+        user_message,
+        reply_in_thread=False,
+        thread_root_id=None,
+    ):
         help_info = (
             "!gpt [prompt], generate a one time response without context conversation\n"
             + "!chat [prompt], chat with context conversation\n"
@@ -1672,6 +1770,8 @@ class Bot:
             sender_id=sender_id,
             user_message=user_message,
             reply_to_event_id=reply_to_event_id,
+            reply_in_thread=reply_in_thread,
+            thread_root_id=thread_root_id,
         )
 
     # send general error message

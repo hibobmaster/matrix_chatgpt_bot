@@ -14,7 +14,14 @@ from PIL import Image
 logger = getlogger()
 
 
-async def send_room_image(client: AsyncClient, room_id: str, image: str):
+async def send_room_image(
+    client: AsyncClient,
+    room_id: str,
+    image: str,
+    reply_to_event_id=None,
+    reply_in_thread=False,
+    thread_root_id=None,
+):
     """
     image: image path
     """
@@ -56,6 +63,25 @@ async def send_room_image(client: AsyncClient, room_id: str, image: str):
         "msgtype": "m.image",
         "url": resp.content_uri,
     }
+
+    if reply_in_thread:
+        content = {
+            "body": os.path.basename(image),  # descriptive title
+            "info": {
+                "size": file_stat.st_size,
+                "mimetype": mime_type,
+                "w": width,  # width in pixel
+                "h": height,  # height in pixel
+            },
+            "msgtype": "m.image",
+            "url": resp.content_uri,
+            "m.relates_to": {
+                "rel_type": "m.thread",
+                "event_id": thread_root_id,
+                "m.in_reply_to": {"event_id": reply_to_event_id},
+                "is_falling_back": True,
+            },
+        }
 
     try:
         await client.room_send(room_id, message_type="m.room.message", content=content)
