@@ -1,8 +1,7 @@
 ## Introduction
 
 This is a simple Matrix bot that support using OpenAI API, Langchain to generate responses from user inputs. The bot responds to these commands: `!gpt`, `!chat`, `!v`, `!pic`, `!new`, `!lc` and `!help` depending on the first word of the prompt.
-![ChatGPT](https://i.imgur.com/kK4rnPf.jpeg)
-![GPT Vision](https://i.imgur.com/6EqC603.jpeg)
+![ChatGPT](https://i.imgur.com/xP4bwMr.jpeg)
 
 ## Feature
 
@@ -85,12 +84,12 @@ To interact with the bot, simply send a message to the bot in the Matrix room wi
 !chat Can you tell me a joke?
 ```
 
-- `!v` GPT Vision command
+- GPT Vision command
+
+You can refer the screenshot
 ```
-# if image is uploaded by bot
-!v what is in the image?
-# else you should @bot_account before the command
-@bot !v what is in the image?
+Room Level: quote a image and @bot + {prompt}
+Thread Level: quote a image with a {prompt}
 ```
 
 - `!lc` To chat using langchain api endpoint
@@ -115,6 +114,14 @@ LangChain(flowise) admin: https://github.com/hibobmaster/matrix_chatgpt_bot/wiki
 ![demo1](https://i.imgur.com/voeomsF.jpg)
 ![demo2](https://i.imgur.com/BKZktWd.jpg)
 https://github.com/hibobmaster/matrix_chatgpt_bot/wiki/ <br>
+
+## GPT Vision
+Room Level:
+![GPT Vision Room Level](https://i.imgur.com/pUaxeps.jpeg)
+
+Thread Level:
+
+![GPT Vision Thread Level](https://i.imgur.com/Rw7wy3Y.jpeg)
 
 ## Thread level Context
 Mention bot with prompt, bot will reply in thread.
