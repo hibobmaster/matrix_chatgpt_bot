@@ -223,6 +223,7 @@ class Bot:
         self.lcadmin_prog = re.compile(r"\s*!lcadmin\s+(.+)$")
         self.agent_prog = re.compile(r"\s*!agent\s+(.+)$")
         self.escape_user_id = re.compile("\s*:\s*(.+)$")
+        self.escape_other_user_id = re.compile(".*\\n\\n(.+)$")
         self.help_prog = re.compile(r"\s*!help\s*.*$")
         self.new_prog = re.compile(r"\s*!new\s+(.+)$")
 
@@ -294,6 +295,11 @@ class Bot:
 
                                 # gpt vision, don't work in E2EE room
                                 if "m.image" == msgtype:
+                                    if (
+                                        self.gpt_vision_api_endpoint is None
+                                        or self.gpt_vision_model is None
+                                    ):
+                                        return
                                     v = self.escape_user_id.search(content_body)
                                     if v:
                                         prompt = v.group(1)
@@ -333,7 +339,7 @@ class Bot:
                                     )
                                 )
                             except Exception as e:
-                                logger.error(e, exe_info=True)
+                                logger.error(e)
 
                             return
 
@@ -352,6 +358,11 @@ class Bot:
 
                         # gpt vision, don't work in E2EE room
                         if "m.image" == msgtype:
+                            if (
+                                self.gpt_vision_api_endpoint is None
+                                or self.gpt_vision_model is None
+                            ):
+                                return
                             v = self.escape_user_id.search(content_body)
                             if v:
                                 prompt = v.group(1)
@@ -425,7 +436,7 @@ class Bot:
                             )
                         )
                     except Exception as e:
-                        logger.error(e, exe_info=True)
+                        logger.error(e)
 
                     return
 
@@ -436,62 +447,111 @@ class Bot:
                     # thread is created by @bot
                     if thread_root_id in self.chatbot.conversation:
                         msgtype = event_source["content"]["msgtype"]
-                        if "m.text" == msgtype:
-                            # !pic command for thread chatting
-                            p = self.pic_prog.search(content_body)
-                            if p:
-                                prompt = p.group(1)
+
+                        if "m.in_reply_to" in event_source["content"]["m.relates_to"]:
+                            in_reply_to_event_id = event_source["content"][
+                                "m.relates_to"
+                            ]["m.in_reply_to"]["event_id"]
+                            event_info = await self.get_event(
+                                room_id, in_reply_to_event_id
+                            )
+                            if "msgtype" in event_info["content"]:
+                                last_msgtype = event_info["content"]["msgtype"]
+                                # gpt vision
+                                if "m.image" == last_msgtype:
+                                    if (
+                                        self.gpt_vision_api_endpoint is None
+                                        or self.gpt_vision_model is None
+                                    ):
+                                        return
+                                    image_mimetype = event_info["content"]["info"][
+                                        "mimetype"
+                                    ]
+                                    s = self.escape_other_user_id.search(
+                                        event_source["content"]["body"]
+                                    )
+                                    if s:
+                                        prompt = s.group(1)
+                                        url = event_info["content"]["url"]
+                                        resp = await self.download_mxc(url)
+                                        if isinstance(resp, DownloadError):
+                                            logger.error("Download of image failed")
+                                        else:
+                                            b64_image = base64.b64encode(
+                                                resp.body
+                                            ).decode("utf-8")
+                                            image_url = f"data:{image_mimetype};base64,{b64_image}"
+
+                                        asyncio.create_task(
+                                            self.gpt_vision_cmd(
+                                                room_id,
+                                                reply_to_event_id,
+                                                prompt,
+                                                image_url,
+                                                sender_id,
+                                                raw_user_message,
+                                                reply_in_thread=True,
+                                                thread_root_id=thread_root_id,
+                                            )
+                                        )
+                                        return
+
+                            if "m.text" == msgtype:
+                                # !pic command for thread chatting
+                                p = self.pic_prog.search(content_body)
+                                if p:
+                                    prompt = p.group(1)
+                                    try:
+                                        asyncio.create_task(
+                                            self.pic(
+                                                room_id,
+                                                prompt,
+                                                reply_to_event_id,
+                                                sender_id,
+                                                raw_user_message,
+                                                reply_in_thread=True,
+                                                thread_root_id=thread_root_id,
+                                            )
+                                        )
+                                    except Exception as e:
+                                        logger.error(e)
+
+                                    return
+
+                                # !help command for thread chatting
+                                h = self.help_prog.search(content_body)
+                                if h:
+                                    try:
+                                        asyncio.create_task(
+                                            self.help(
+                                                room_id,
+                                                reply_to_event_id,
+                                                sender_id,
+                                                raw_user_message,
+                                                reply_in_thread=True,
+                                                thread_root_id=thread_root_id,
+                                            )
+                                        )
+                                    except Exception as e:
+                                        logger.error(e)
+
+                                    return
+
+                                # normal chatting function
                                 try:
                                     asyncio.create_task(
-                                        self.pic(
+                                        self.thread_chat(
                                             room_id,
-                                            prompt,
                                             reply_to_event_id,
-                                            sender_id,
-                                            raw_user_message,
-                                            reply_in_thread=True,
+                                            sender_id=sender_id,
                                             thread_root_id=thread_root_id,
+                                            prompt=content_body,
                                         )
                                     )
                                 except Exception as e:
-                                    logger.error(e, exc_info=True)
+                                    logger.error(e)
 
                                 return
-
-                            # !help command for thread chatting
-                            h = self.help_prog.search(content_body)
-                            if h:
-                                try:
-                                    asyncio.create_task(
-                                        self.help(
-                                            room_id,
-                                            reply_to_event_id,
-                                            sender_id,
-                                            raw_user_message,
-                                            reply_in_thread=True,
-                                            thread_root_id=thread_root_id,
-                                        )
-                                    )
-                                except Exception as e:
-                                    logger.error(e, exc_info=True)
-
-                                return
-
-                            # normal chatting function
-                            try:
-                                asyncio.create_task(
-                                    self.thread_chat(
-                                        room_id,
-                                        reply_to_event_id,
-                                        sender_id=sender_id,
-                                        thread_root_id=thread_root_id,
-                                        prompt=content_body,
-                                    )
-                                )
-                            except Exception as e:
-                                logger.error(e, exe_info=True)
-
-                            return
 
             # common command
 
@@ -514,7 +574,7 @@ class Bot:
                             )
                         )
                     except Exception as e:
-                        logger.error(e, exc_info=True)
+                        logger.error(e)
 
                     return
 
@@ -537,7 +597,7 @@ class Bot:
                             )
                         )
                     except Exception as e:
-                        logger.error(e, exc_info=True)
+                        logger.error(e)
 
                     return
 
@@ -615,7 +675,7 @@ class Bot:
                                 api_key = self.lc_cache[sender_id]["api_key"]
                                 perm_flags = self.lc_cache[sender_id]["permission"]
                     except Exception as e:
-                        logger.error(e, exc_info=True)
+                        logger.error(e)
 
                     prompt = m.group(1)
                     try:
@@ -644,7 +704,7 @@ class Bot:
                             )
                     except Exception as e:
                         await send_room_message(self.client, room_id, reply_message={e})
-                        logger.error(e, exc_info=True)
+                        logger.error(e)
 
             # lc_admin command
             """
@@ -771,7 +831,7 @@ class Bot:
                                                 reply_to_event_id="",
                                             )
                                     except Exception as e:
-                                        logger.error(e, exc_info=True)
+                                        logger.error(e)
                                         await send_room_message(
                                             self.client,
                                             room_id,
@@ -1025,7 +1085,7 @@ class Bot:
                                                     "agent"
                                                 ] = agent
                                         except Exception as e:
-                                            logger.error(e, exc_info=True)
+                                            logger.error(e)
                                             await send_room_message(
                                                 self.client,
                                                 room_id,
@@ -1115,7 +1175,7 @@ class Bot:
                                         )
 
                         except Exception as e:
-                            logger.error(e, exc_info=True)
+                            logger.error(e)
                     # endif if sender_id in self.lc_admin
                     else:
                         logger.warning(f"{sender_id} is not admin")
@@ -1197,7 +1257,7 @@ class Bot:
                                 )
 
                 except Exception as e:
-                    logger.error(e, exc_info=True)
+                    logger.error(e)
 
             # !new command
             n = self.new_prog.search(content_body)
@@ -1214,7 +1274,7 @@ class Bot:
                         )
                     )
                 except Exception as e:
-                    logger.error(e, exc_info=True)
+                    logger.error(e)
 
                 return
 
@@ -1233,7 +1293,7 @@ class Bot:
                         )
                     )
                 except Exception as e:
-                    logger.error(e, exc_info=True)
+                    logger.error(e)
 
                 return
 
@@ -1247,7 +1307,7 @@ class Bot:
                         )
                     )
                 except Exception as e:
-                    logger.error(e, exc_info=True)
+                    logger.error(e)
 
                 return
 
@@ -1511,7 +1571,7 @@ class Bot:
                 thread_root_id=thread_root_id,
             )
         except Exception as e:
-            logger.error(e, exe_info=True)
+            logger.error(e)
             await send_room_message(
                 self.client,
                 room_id,
@@ -1539,7 +1599,7 @@ class Bot:
                 user_message=user_message,
             )
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(e)
             await self.send_general_error_message(
                 room_id, reply_to_event_id, sender_id, user_message
             )
@@ -1564,12 +1624,12 @@ class Bot:
                 user_message=user_message,
             )
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(e)
             await self.send_general_error_message(
                 room_id, reply_to_event_id, sender_id, user_message
             )
 
-    # !v command
+    # gpt vision
     async def gpt_vision_cmd(
         self,
         room_id: str,
@@ -1603,8 +1663,14 @@ class Bot:
                 reply_in_thread=reply_in_thread,
                 thread_root_id=thread_root_id,
             )
+            if reply_in_thread and thread_root_id:
+                # add gpt vision to thread context
+                self.chatbot.add_to_conversation(
+                    message=responseMessage, role="assistant", convo_id=thread_root_id
+                )
+
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(e)
             await self.send_general_error_message(
                 room_id, reply_to_event_id, sender_id, user_message
             )
@@ -1641,7 +1707,7 @@ class Bot:
                 user_message=user_message,
             )
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(e)
             await self.send_general_error_message(
                 room_id, reply_to_event_id, sender_id, user_message
             )
@@ -1673,7 +1739,7 @@ class Bot:
                 user_message=user_message,
             )
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(e)
             await self.send_general_error_message(
                 room_id, reply_to_event_id, sender_id, user_message
             )
@@ -1732,7 +1798,7 @@ class Bot:
                     user_message=user_message,
                 )
         except Exception as e:
-            logger.error(e, exc_info=True)
+            logger.error(e)
             await send_room_message(
                 self.client,
                 room_id,
