@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.2
+- Refactor gpt vision trigger method
+- !pic, !help, and gpt vision in thread chat
+- Add GPT Vision thread level response to context
+
 ## 1.7.1
 - Fix official openai image generation
 - Thread level chatting for Element Android
