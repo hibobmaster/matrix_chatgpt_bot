@@ -14,6 +14,22 @@ logger = getlogger()
 async def main():
     need_import_keys = False
     config_path = Path(os.path.dirname(__file__)).parent / "config.json"
+    help_message_path = (
+        Path(os.path.dirname(__file__)).parent / "custom_help_message.txt"
+    )
+
+    if os.path.isfile(help_message_path):
+        try:
+            f = open(help_message_path, encoding="utf8")
+            custom_help_message = ""
+            for line in f.readlines():
+                custom_help_message += line
+        except Exception as e:
+            logger.error(e)
+            sys.exit(1)
+    else:
+        custom_help_message = None
+
     if os.path.isfile(config_path):
         try:
             fp = open(config_path, encoding="utf8")
@@ -52,6 +68,7 @@ async def main():
             gpt_vision_model=config.get("gpt_vision_model"),
             gpt_vision_api_endpoint=config.get("gpt_vision_api_endpoint"),
             timeout=config.get("timeout"),
+            custom_help_message=custom_help_message,
         )
         if (
             config.get("import_keys_path")
@@ -90,6 +107,7 @@ async def main():
             gpt_vision_model=os.environ.get("GPT_VISION_MODEL"),
             gpt_vision_api_endpoint=os.environ.get("GPT_VISION_API_ENDPOINT"),
             timeout=float(os.environ.get("TIMEOUT", 120.0)),
+            custom_help_message=custom_help_message,
         )
         if (
             os.environ.get("IMPORT_KEYS_PATH")

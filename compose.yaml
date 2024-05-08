@@ -16,6 +16,7 @@ services:
       - ./sync_db:/app/sync_db
       - ./context.db:/app/context.db
       # - ./manage_db:/app/manage_db
+      # - ./custom_help_message.txt:/app/custom_help_message.txt
       # import_keys path
       # - ./element-keys.txt:/app/element-keys.txt
     networks:

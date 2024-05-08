@@ -80,6 +80,7 @@ class Bot:
         gpt_vision_model: Optional[str] = None,
         gpt_vision_api_endpoint: Optional[str] = None,
         timeout: Union[float, None] = None,
+        custom_help_message: Optional[str] = None,
     ):
         if homeserver is None or user_id is None or device_id is None:
             logger.error("homeserver && user_id && device_id is required")
@@ -226,6 +227,8 @@ class Bot:
         self.escape_other_user_id = re.compile(".*\\n\\n(.+)$")
         self.help_prog = re.compile(r"\s*!help\s*.*$")
         self.new_prog = re.compile(r"\s*!new\s+(.+)$")
+
+        self.custom_help_message = custom_help_message
 
     async def close(self, task: asyncio.Task) -> None:
         self.chatbot.cursor.close()
@@ -1818,16 +1821,19 @@ class Bot:
         reply_in_thread=False,
         thread_root_id=None,
     ):
-        help_info = (
-            "!gpt [prompt], generate a one time response without context conversation\n"
-            + "!chat [prompt], chat with context conversation\n"
-            + "!pic [prompt], Image generation by DALL-E-3 or LocalAI or stable-diffusion-webui\n"  # noqa: E501
-            + "!new + chat, start a new conversation \n"
-            + "!lc [prompt], chat using langchain api\n"
-            + "quote a image and @bot with prompt, gpt vision function\n"
-            + "@bot with prompt, create a thread level chatting\n"
-            + "!help, help message"
-        )  # noqa: E501
+        if self.custom_help_message:
+            help_info = self.custom_help_message
+        else:
+            help_info = (
+                "!gpt [prompt], generate a one time response without context conversation\n"
+                + "!chat [prompt], chat with context conversation\n"
+                + "!pic [prompt], Image generation by DALL-E-3 or LocalAI or stable-diffusion-webui\n"  # noqa: E501
+                + "!new + chat, start a new conversation \n"
+                + "!lc [prompt], chat using langchain api\n"
+                + "quote a image and @bot with prompt, gpt vision function\n"
+                + "@bot with prompt, create a thread level chatting\n"
+                + "!help, help message"
+            )  # noqa: E501
 
         await send_room_message(
             self.client,

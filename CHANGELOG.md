@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.8.0
+- Support custom help message
+
 ## 1.7.2
 - Refactor gpt vision trigger method
 - !pic, !help, and gpt vision in thread chat
