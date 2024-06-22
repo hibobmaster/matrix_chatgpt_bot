@@ -19,8 +19,3 @@ services:
       # - ./custom_help_message.txt:/app/custom_help_message.txt
       # import_keys path
       # - ./element-keys.txt:/app/element-keys.txt
-    networks:
-      - matrix_network
-
-networks:
-  matrix_network:

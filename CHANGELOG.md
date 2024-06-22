@@ -2,7 +2,16 @@
 
 ## 1.8.0
 - Support custom help message
+
+Create a `custom_help_message.txt` and uncomment the field in docker compose file.
+![Imgur](https://i.imgur.com/X5vGr6v.jpeg)
 - Support several whitelist room_id
+
+You can add as many as room_id that you hope the bot works on.
+
+`"room_id": ["!111111:matrix.qqs.tw", "!222222:matrix.qqs.tw"]` for `config.json`
+
+`ROOM_ID="!aaaaaaa:XXX.XXX,!bbbbbb:XXX.XXX"` for `.env`
 
 ## 1.7.2
 - Refactor gpt vision trigger method
