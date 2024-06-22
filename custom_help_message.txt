@@ -1,11 +1,11 @@
 Hi there, welcome to our chat room!
-Our bot is powered by opensource project [matrix_chatgpt_bot](https://github.com/hibobmaster/matrix_chatgpt_bot).
 Here are some commands you can use to interact with the bot.
 !gpt [prompt], generate a one time response without context conversation
 !chat [prompt], chat with context conversation
 !pic [prompt], Image generation by DALL-E-3 or LocalAI or stable-diffusion-webui
 !new + chat, start a new conversation
-!lc [prompt], chat using langchain api
 quote a image and @bot with prompt, gpt vision function
 @bot with prompt, create a thread level chatting
 !help, help message
+
+Our bot is powered by opensource project [matrix_chatgpt_bot](https://github.com/hibobmaster/matrix_chatgpt_bot).

@@ -4,7 +4,7 @@
     "password": "xxxxxxxxxxxxxxxxxx",
     "access_token": "xxxxxxxxxxxxxx",
     "device_id": "MatrixChatGPTBot",
-    "room_id": "!xxxxxxxxxxxxxxxxxxxxxx:xxxxx.org",
+    "room_id": ["!xxxxxxxxxxxxxxxxxxxxxx:xxxxx.org"],
     "import_keys_path": "element-keys.txt",
     "import_keys_password": "xxxxxxxxxxxxxxxxxxxx",
     "openai_api_key": "xxxxxxxxxxxxxxxxxxxxxxxx",

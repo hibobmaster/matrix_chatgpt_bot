@@ -56,7 +56,7 @@ class Bot:
         device_id: str,
         password: Union[str, None] = None,
         access_token: Union[str, None] = None,
-        room_id: Union[str, None] = None,
+        whitelist_room_id: Optional[list[str]] = None,
         import_keys_path: Optional[str] = None,
         import_keys_password: Optional[str] = None,
         openai_api_key: Union[str, None] = None,
@@ -110,7 +110,6 @@ class Bot:
         self.password: str = password
         self.access_token: str = access_token
         self.device_id: str = device_id
-        self.room_id: str = room_id
 
         self.openai_api_key: str = openai_api_key
         self.gpt_api_endpoint: str = (
@@ -158,6 +157,14 @@ class Bot:
         self.timeout: float = timeout or 120.0
 
         self.base_path = Path(os.path.dirname(__file__)).parent
+
+        self.whitelist_room_id = whitelist_room_id
+        if whitelist_room_id is not None:
+            if isinstance(whitelist_room_id, str):
+                whitelist_room_id_list = list()
+                for room_id in whitelist_room_id.split(","):
+                    whitelist_room_id_list.append(room_id.strip())
+                self.whitelist_room_id = whitelist_room_id_list
 
         if lc_admin is not None:
             if isinstance(lc_admin, str):
@@ -243,13 +250,9 @@ class Bot:
 
     # message_callback RoomMessageText event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
-        if self.room_id is None:
-            room_id = room.room_id
-        else:
-            # if event room id does not match the room id in config, return
-            if room.room_id != self.room_id:
-                return
-            room_id = self.room_id
+        if room.room_id not in self.whitelist_room_id:
+            return
+        room_id = room.room_id
 
         # reply event_id
         reply_to_event_id = event.event_id

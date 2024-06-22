@@ -2,6 +2,7 @@
 
 ## 1.8.0
 - Support custom help message
+- Support several whitelist room_id
 
 ## 1.7.2
 - Refactor gpt vision trigger method
