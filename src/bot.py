@@ -250,8 +250,9 @@ class Bot:
 
     # message_callback RoomMessageText event
     async def message_callback(self, room: MatrixRoom, event: RoomMessageText) -> None:
-        if room.room_id not in self.whitelist_room_id:
-            return
+        if self.whitelist_room_id is not None:
+            if room.room_id not in self.whitelist_room_id:
+                return
         room_id = room.room_id
 
         # reply event_id
