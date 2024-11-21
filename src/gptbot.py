@@ -12,6 +12,8 @@ import tiktoken
 
 ENGINES = ["gpt-3.5-turbo", "gpt-4", "gpt-4-32k", "gpt-4-turbo"]
 
+GPT_O1_MODEL = ["o1-preview", "o1-mini"]
+
 
 class Chatbot:
     """
@@ -293,32 +295,48 @@ class Chatbot:
         self.add_to_conversation(prompt, "user", convo_id=convo_id)
         self.__truncate_conversation(convo_id=convo_id)
         # Get response
-        response = await self.aclient.post(
-            url=self.api_url,
-            headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
-            json={
-                "model": model or self.engine,
-                "messages": self.conversation[convo_id] if pass_history else [prompt],
-                # kwargs
-                "temperature": kwargs.get("temperature", self.temperature),
-                "top_p": kwargs.get("top_p", self.top_p),
-                "presence_penalty": kwargs.get(
-                    "presence_penalty",
-                    self.presence_penalty,
-                ),
-                "frequency_penalty": kwargs.get(
-                    "frequency_penalty",
-                    self.frequency_penalty,
-                ),
-                "n": kwargs.get("n", self.reply_count),
-                "user": role,
-                "max_tokens": min(
-                    self.get_max_tokens(convo_id=convo_id),
-                    kwargs.get("max_tokens", self.max_tokens),
-                ),
-            },
-            timeout=kwargs.get("timeout", self.timeout),
-        )
+        # o1 beta-limitations
+        if self.engine in GPT_O1_MODEL:
+            response = await self.aclient.post(
+                url=self.api_url,
+                headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+                json={
+                    "model": model or self.engine,
+                    "messages": self.conversation[convo_id] if pass_history else [prompt],
+                    "max_completion_tokens": min(
+                        self.get_max_tokens(convo_id=convo_id),
+                        kwargs.get("max_tokens", self.max_tokens),
+                    ),
+                },
+                timeout=kwargs.get("timeout", self.timeout),
+            )
+        else:
+            response = await self.aclient.post(
+                url=self.api_url,
+                headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+                json={
+                    "model": model or self.engine,
+                    "messages": self.conversation[convo_id] if pass_history else [prompt],
+                    # kwargs
+                    "temperature": kwargs.get("temperature", self.temperature),
+                    "top_p": kwargs.get("top_p", self.top_p),
+                    "presence_penalty": kwargs.get(
+                        "presence_penalty",
+                        self.presence_penalty,
+                    ),
+                    "frequency_penalty": kwargs.get(
+                        "frequency_penalty",
+                        self.frequency_penalty,
+                    ),
+                    "n": kwargs.get("n", self.reply_count),
+                    "user": role,
+                    "max_tokens": min(
+                        self.get_max_tokens(convo_id=convo_id),
+                        kwargs.get("max_tokens", self.max_tokens),
+                    ),
+                },
+                timeout=kwargs.get("timeout", self.timeout),
+            )
         resp = response.json()
         full_response = resp["choices"][0]["message"]["content"]
         self.add_to_conversation(
@@ -330,9 +348,13 @@ class Chatbot:
         """
         Reset the conversation
         """
-        self.conversation[convo_id] = [
-            {"role": "system", "content": system_prompt or self.system_prompt},
-        ]
+        # o1 beta-limitations
+        if self.engine in GPT_O1_MODEL:
+            self.conversation[convo_id] = []
+        else:
+            self.conversation[convo_id] = [
+                {"role": "system", "content": system_prompt or self.system_prompt},
+            ]
         self._save_conversation(convo_id)
 
     @retry(wait=wait_random_exponential(min=2, max=5), stop=stop_after_attempt(3))
@@ -343,31 +365,50 @@ class Chatbot:
         model: str = None,
         **kwargs,
     ) -> str:
-        response = await self.aclient.post(
-            url=self.api_url,
-            json={
-                "model": model or self.engine,
-                "messages": [
-                    {
-                        "role": role,
-                        "content": prompt,
-                    }
-                ],
-                # kwargs
-                "temperature": kwargs.get("temperature", self.temperature),
-                "top_p": kwargs.get("top_p", self.top_p),
-                "presence_penalty": kwargs.get(
-                    "presence_penalty",
-                    self.presence_penalty,
-                ),
-                "frequency_penalty": kwargs.get(
-                    "frequency_penalty",
-                    self.frequency_penalty,
-                ),
-                "user": role,
-            },
-            headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
-            timeout=kwargs.get("timeout", self.timeout),
+        # o1 beta-limitations
+        if self.engine in GPT_O1_MODEL:
+            response = await self.aclient.post(
+                url=self.api_url,
+                json={
+                    "model": model or self.engine,
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": prompt,
+                        }
+                    ],
+                    "max_completion_tokens": kwargs.get("max_tokens", self.max_tokens),
+                },
+                headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+                timeout=kwargs.get("timeout", self.timeout),
         )
+        else:
+            response = await self.aclient.post(
+                url=self.api_url,
+                json={
+                    "model": model or self.engine,
+                    "messages": [
+                        {
+                            "role": role,
+                            "content": prompt,
+                        }
+                    ],
+                    # kwargs
+                    "temperature": kwargs.get("temperature", self.temperature),
+                    "top_p": kwargs.get("top_p", self.top_p),
+                    "presence_penalty": kwargs.get(
+                        "presence_penalty",
+                        self.presence_penalty,
+                    ),
+                    "frequency_penalty": kwargs.get(
+                        "frequency_penalty",
+                        self.frequency_penalty,
+                    ),
+                    "user": role,
+                    "max_tokens": kwargs.get("max_tokens", self.max_tokens),
+                },
+                headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
+                timeout=kwargs.get("timeout", self.timeout),
+            )
         resp = response.json()
         return resp["choices"][0]["message"]["content"]
