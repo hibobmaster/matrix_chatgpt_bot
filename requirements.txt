@@ -3,6 +3,6 @@ httpx
 Markdown
 matrix-nio[e2e]
 Pillow
-tiktoken
+tiktoken ==0.7.0
 tenacity
 python-magic
