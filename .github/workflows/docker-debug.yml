@@ -9,8 +9,8 @@ on:
       - '**.py'
 
 jobs:
-  push_to_registry:
-    name: Push Docker image to registry
+  push_to_registry_amd64:
+    name: Push AMD64 Docker image
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
@@ -35,10 +35,7 @@ jobs:
         with:
           images: hibobmaster/matrixchatgptbot
           tags: |
-            type=sha,format=long
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+            type=sha,format=long,suffix=-amd64
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -47,8 +44,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
+          provenance: false
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -60,15 +58,118 @@ jobs:
         with:
           images: ghcr.io/hibobmaster/matrixchatgptbot
           tags: |
-            type=sha,format=long
+            type=sha,format=long,suffix=-amd64
 
       - name: Build and push Docker image(ghcr)
         uses: docker/build-push-action@v5
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
+          provenance: false
           tags: ${{ steps.meta2.outputs.tags }}
           labels: ${{ steps.meta2.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  push_to_registry_arm64:
+    name: Push ARM64 Docker image
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: hibobmaster/matrixchatgptbot
+          tags: |
+            type=sha,format=long,suffix=-arm64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image(dockerhub)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          provenance: false
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Docker metadata(ghcr)
+        id: meta2
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/hibobmaster/matrixchatgptbot
+          tags: |
+            type=sha,format=long,suffix=-arm64
+
+      - name: Build and push Docker image(ghcr)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          provenance: false
+          tags: ${{ steps.meta2.outputs.tags }}
+          labels: ${{ steps.meta2.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  create_manifests:
+    name: Create and push multi-arch manifests
+    needs: [push_to_registry_amd64, push_to_registry_arm64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Docker CLI for multi-platform builds
+        run: |
+          docker version
+          docker buildx version
+
+      - name: Create and push Docker Hub manifest
+        run: |
+          SHA_TAG="sha-${{ github.sha }}"
+          docker manifest create hibobmaster/matrixchatgptbot:${SHA_TAG} --amend \
+            hibobmaster/matrixchatgptbot:${SHA_TAG}-amd64 \
+            hibobmaster/matrixchatgptbot:${SHA_TAG}-arm64
+          docker manifest push hibobmaster/matrixchatgptbot:${SHA_TAG}
+
+      - name: Create and push GHCR manifest
+        run: |
+          SHA_TAG="sha-${{ github.sha }}"
+          docker manifest create ghcr.io/hibobmaster/matrixchatgptbot:${SHA_TAG} --amend \
+            ghcr.io/hibobmaster/matrixchatgptbot:${SHA_TAG}-amd64 \
+            ghcr.io/hibobmaster/matrixchatgptbot:${SHA_TAG}-arm64
+          docker manifest push ghcr.io/hibobmaster/matrixchatgptbot:${SHA_TAG}
