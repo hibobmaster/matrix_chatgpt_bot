@@ -12,7 +12,8 @@ import tiktoken
 
 ENGINES = ["gpt-3.5-turbo", "gpt-4", "gpt-4-32k", "gpt-4-turbo"]
 
-GPT_O1_MODEL = ["o1-preview", "o1-mini", "o1", "o3-mini"]
+# GPT O-series models
+GPT_O_MODEL = ["o1-preview", "o1-mini", "o1", "o1-pro", "o3-mini", "o3", "o4-mini"]
 
 
 class Chatbot:
@@ -296,7 +297,7 @@ class Chatbot:
         self.__truncate_conversation(convo_id=convo_id)
         # Get response
         # o1 beta-limitations
-        if self.engine in GPT_O1_MODEL:
+        if self.engine in GPT_O_MODEL:
             response = await self.aclient.post(
                 url=self.api_url,
                 headers={"Authorization": f"Bearer {kwargs.get('api_key', self.api_key)}"},
@@ -349,7 +350,7 @@ class Chatbot:
         Reset the conversation
         """
         # o1 beta-limitations
-        if self.engine in GPT_O1_MODEL:
+        if self.engine in GPT_O_MODEL:
             self.conversation[convo_id] = []
         else:
             self.conversation[convo_id] = [
@@ -366,7 +367,7 @@ class Chatbot:
         **kwargs,
     ) -> str:
         # o1 beta-limitations
-        if self.engine in GPT_O1_MODEL:
+        if self.engine in GPT_O_MODEL:
             response = await self.aclient.post(
                 url=self.api_url,
                 json={
